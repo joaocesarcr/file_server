@@ -2,27 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "message_struct.h"
-#include "serializer.c"
-
+#include "./SerDes/message_struct.h"
+#include "./SerDes/serializer.c"
+#include "./SerDes/deserializer.c"
 
 /*
  * TODO
  * Nao tem que enviar o tamanho, vai ser sempre fixo
  */
 
-// Function to deserialize the struct
-void deserializeStruct(const char* serializedData, const size_t serializedSize, MESSAGE* message) {
-    char* buffer = (char*)serializedData;
-
-    // Copy the number
-    memcpy(&(message->number), buffer, sizeof(int));
-    buffer += sizeof(int);
-
-    // Copy the message
-    memcpy(message->data, buffer, MAX_MESSAGE_LENGTH);
-    message->data[MAX_MESSAGE_LENGTH] = '\0';
-}
 
 // Test the serialization and deserialization
 int main() {
@@ -34,15 +22,14 @@ int main() {
 
     // Serialize the struct
     char* serializedData;
-    size_t serializedSize;
-    serializeStruct(&original, &serializedData, &serializedSize);
+    serializeStruct(&original, &serializedData);
 
     // Send or store the serialized data
     // ...
 
     // Deserialize the struct
     MESSAGE deserialized;
-    deserializeStruct(serializedData, serializedSize, &deserialized);
+    deserializeStruct(serializedData, &deserialized);
 
     // Print the deserialized struct
     printf("Number: %d\n", deserialized.number);
