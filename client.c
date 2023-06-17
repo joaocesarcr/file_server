@@ -10,38 +10,20 @@
 #include "./SerDes/message_struct.h"
 #define PORT 4000
 
+int createConnection(char *argv[]);
+
 int main(int argc, char *argv[])
 {
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-	
-    char buffer[MAX_MESSAGE_LENGTH];
-    if (argc < 2) {
+		if (argc < 2) {
       fprintf(stderr,"usage %s hostname\n", argv[0]);
       exit(0);
     }
-	
-    server = gethostbyname(argv[1]);
-    if (server == NULL) {
-      fprintf(stderr,"ERROR, no such host\n");
-      exit(0);
-    }
-    
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
-        printf("ERROR opening socket\n");
-    
-    serv_addr.sin_family = AF_INET;     
-    serv_addr.sin_port = htons(PORT);    
-    serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-    bzero(&(serv_addr.sin_zero), 8);     
-    
-    
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-      printf("ERROR connecting\n");
+
+		int sockfd = createConnection(argv);
+		char buffer[MAX_MESSAGE_LENGTH];
 
 //    while (1) {
-
+		int n;
 		MESSAGE a;	
 		a.number = 5;;	
     strncpy(a.data, "Deserialize\n", MAX_MESSAGE_LENGTH);
@@ -65,4 +47,31 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
+int createConnection(char *argv[]) {
+		int sockfd, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+	
 
+    server = gethostbyname(argv[1]);
+    if (server == NULL) {
+      fprintf(stderr,"ERROR, no such host\n");
+      exit(0);
+    }
+    
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockfd == -1) 
+			printf("ERROR opening socket\n");
+    
+    serv_addr.sin_family = AF_INET;     
+    serv_addr.sin_port = htons(PORT);    
+    serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+    bzero(&(serv_addr.sin_zero), 8);     
+    
+    
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+      printf("ERROR connecting\n");
+		return sockfd;
+
+}

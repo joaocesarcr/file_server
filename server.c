@@ -9,28 +9,34 @@
 
 #define PORT 4000
 
-int main(int argc, char *argv[])
-{
-	int sockfd, newsockfd, n;
+int main(int argc, char *argv[]) {
+	int sockfd, newsockfd, n, bindReturn;
 	socklen_t clilen;
 	char buffer[MAX_MESSAGE_LENGTH];
 	struct sockaddr_in serv_addr, cli_addr;
+	clilen = sizeof(struct sockaddr_in);
 	
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
-        printf("ERROR opening socket");
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd == -1) 
+		printf("ERROR opening socket");
 	
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	bzero(&(serv_addr.sin_zero), 8);     
     
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+  //  assigns the address specified by addr to the socket referred to
+	// by the file descriptor sockfd
+  bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	if (bindReturn < 0) 
 		printf("ERROR on binding");
 	
+	// tells the socket that new connections shall be accepted
 	listen(sockfd, 5);
 	
-	clilen = sizeof(struct sockaddr_in);
-	if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen)) == -1) 
+	// get a new socket with a new incoming connection
+	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+	if (newsockfd == -1) 
 		printf("ERROR on accept");
 	
 	bzero(buffer, 256);
