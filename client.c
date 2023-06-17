@@ -43,11 +43,12 @@ int main(int argc, char *argv[])
 //    while (1) {
 
 		MESSAGE a;	
+		a.number = 5;;	
     strncpy(a.data, "Deserialize\n", MAX_MESSAGE_LENGTH);
 		//printf("teste: %s\n", a.data);
 
   /* write in the socket */
-    n = write(sockfd, a.data, MAX_MESSAGE_LENGTH);
+    n = write(sockfd, (void*) &a, sizeof(MESSAGE));
     if (n < 0) 
     printf("ERROR writing to socket\n");
 

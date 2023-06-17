@@ -38,12 +38,14 @@ int main(int argc, char *argv[])
 	
 //  while (1) {
     /* read from the socket */
-    n = read(newsockfd, a.data, MAX_MESSAGE_LENGTH);
+    n = read(newsockfd,(void*) &a, sizeof(a));
 
     if (n < 0) 
       printf("ERROR reading from socket\n");
-    else
-      printf("Here is the message: %s\n", a.data);
+    else { 
+      printf("Here is the message: %s", a.data);
+      printf("Here is the number : %d\n", a.number);
+		}
     
     /* write in the socket */ 
 		char message[256];
