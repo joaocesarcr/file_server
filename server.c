@@ -1,3 +1,4 @@
+#include "./SerDes/message_struct.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +13,7 @@ int main(int argc, char *argv[])
 {
 	int sockfd, newsockfd, n;
 	socklen_t clilen;
-	char buffer[256];
+	char buffer[MAX_MESSAGE_LENGTH];
 	struct sockaddr_in serv_addr, cli_addr;
 	
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
@@ -33,22 +34,26 @@ int main(int argc, char *argv[])
 		printf("ERROR on accept");
 	
 	bzero(buffer, 256);
+	MESSAGE a;
 	
-  while (1) {
+//  while (1) {
     /* read from the socket */
-    n = read(newsockfd, buffer, 256);
+    n = read(newsockfd, a.data, MAX_MESSAGE_LENGTH);
 
     if (n < 0) 
       printf("ERROR reading from socket\n");
     else
-      printf("Here is the message: %s\n", buffer);
+      printf("Here is the message: %s\n", a.data);
     
     /* write in the socket */ 
-    n = write(newsockfd,"I got your message\n", 18);
+		char message[256];
+		snprintf(message, sizeof(message), "I got your message: %s", a.data);
+		//printf("teste: %s", message);
+    n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
     if (n < 0) 
       printf("ERROR writing to socket\n");
 
-  }
+//  }
   close(newsockfd);
   close(sockfd);
 	return 0; 

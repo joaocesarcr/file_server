@@ -8,7 +8,6 @@
 
 /*
  * TODO
- * Nao tem que enviar o tamanho, vai ser sempre fixo
  */
 
 
