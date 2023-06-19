@@ -22,27 +22,32 @@ int main(int argc, char *argv[])
 		int sockfd = createConnection(argv);
 		char buffer[MAX_MESSAGE_LENGTH];
 
-//    while (1) {
-		int n;
-		MESSAGE a;	
-		a.number = 5;;	
-    strncpy(a.data, "Deserialize\n", MAX_MESSAGE_LENGTH);
-		//printf("teste: %s\n", a.data);
+    MESSAGE a;	
+    a.number = 0;;	
+    while (1) {
+      int n;
+      strncpy(a.data, "Sending packet", MAX_MESSAGE_LENGTH);
+      //printf("teste: %s\n", a.data);
 
-  /* write in the socket */
-    n = write(sockfd, (void*) &a, sizeof(MESSAGE));
-    if (n < 0) 
-    printf("ERROR writing to socket\n");
+      /* write in the socket */
+      n = write(sockfd, (void*) &a, sizeof(MESSAGE));
+      sleep(1);
+      a.number++;
+      if (n < 0) 
+      printf("ERROR writing to socket\n");
 
-    bzero(buffer,256);
-  
-  /* read from the socket */
-    n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
-    if (n < 0) 
-    printf("ERROR reading from socket\n");
+      bzero(buffer,256);
+    
+    /* read from the socket */
+      do {
+        n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
+      } while (n < MAX_MESSAGE_LENGTH);
 
-    printf("%s\n",buffer);
- //   }
+      if (n < 0) 
+      printf("ERROR reading from socket\n");
+
+      printf("%s\n",buffer);
+    }
 
     close(sockfd);
     return 0;

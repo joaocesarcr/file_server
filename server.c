@@ -42,26 +42,25 @@ int main(int argc, char *argv[]) {
 	bzero(buffer, 256);
 	MESSAGE a;
 	
-//  while (1) {
-    /* read from the socket */
-    n = read(newsockfd,(void*) &a, sizeof(a));
+    while (1) {
+      /* read from the socket */
+      n = read(newsockfd,(void*) &a, sizeof(a));
 
-    if (n < 0) 
-      printf("ERROR reading from socket\n");
-    else { 
-      printf("Here is the message: %s", a.data);
-      printf("Here is the number : %d\n", a.number);
-		}
-    
-    /* write in the socket */ 
-		char message[256];
-		snprintf(message, sizeof(message), "I got your message: %s", a.data);
-		//printf("teste: %s", message);
-    n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
-    if (n < 0) 
-      printf("ERROR writing to socket\n");
+      if (n < 0) 
+        printf("ERROR reading from socket\n");
+      else { 
+        printf("%s: %d\n",a.data, a.number);
+      }
+      
+      /* write in the socket */ 
+      char message[256];
+      snprintf(message, sizeof(message), "I got your message: %s", a.data);
+      //printf("teste: %s", message);
+      n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
+      if (n < 0) 
+        printf("ERROR writing to socket\n");
 
-//  }
+  }
   close(newsockfd);
   close(sockfd);
 	return 0; 
