@@ -1,3 +1,7 @@
+*.out
+c
+s
+*swp
 # Prerequisites
 *.d
 
