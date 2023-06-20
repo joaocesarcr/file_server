@@ -10,7 +10,7 @@
 
 #define PORT 4000
 
-void client_thread(int newsockfd, int sockfd);
+void *client_thread(void* arg);
 int main(int argc, char *argv[]) {
 	int sockfd, newsockfd, n, bindReturn;
 	socklen_t clilen;
@@ -37,20 +37,29 @@ int main(int argc, char *argv[]) {
 	listen(sockfd, 5);
 	
 	// get a new socket with a new incoming connection
+  printf("Waiting accept\n");
 	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 	if (newsockfd == -1) 
 		printf("ERROR on accept");
 	
   else {
-    client_thread(newsockfd, sockfd);
+    while (1) {
+    printf("Accepted\n");
+    pthread_t th1;
+    pthread_create(&th1, NULL, client_thread, &newsockfd);
+    pthread_join(th1, NULL);
+    close(sockfd);
+
+    //client_thread(newsockfd, sockfd);
+    }
 		
   }
 	return 0; 
 }
 
-void client_thread(int newsockfd, int sockfd){
+void *client_thread(void *arg){
   MESSAGE a;
-
+  int newsockfd = *(int*) arg;
   int running = 1, n;
   while (running) {
     /* read from the socket */
@@ -72,7 +81,6 @@ void client_thread(int newsockfd, int sockfd){
 
     if (a.number == 10) {
       close(newsockfd);
-      close(sockfd);
       running = 0;
     }
 
