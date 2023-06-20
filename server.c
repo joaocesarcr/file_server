@@ -1,4 +1,5 @@
 #include "./SerDes/message_struct.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 
 #define PORT 4000
 
+void client_thread(int newsockfd, int sockfd);
 int main(int argc, char *argv[]) {
 	int sockfd, newsockfd, n, bindReturn;
 	socklen_t clilen;
@@ -39,29 +41,41 @@ int main(int argc, char *argv[]) {
 	if (newsockfd == -1) 
 		printf("ERROR on accept");
 	
-	bzero(buffer, 256);
-	MESSAGE a;
-	
-    while (1) {
-      /* read from the socket */
-      n = read(newsockfd,(void*) &a, sizeof(a));
+  else {
+    client_thread(newsockfd, sockfd);
+		
+  }
+	return 0; 
+}
 
-      if (n < 0) 
-        printf("ERROR reading from socket\n");
-      else { 
-        printf("%s: %d\n",a.data, a.number);
-      }
-      
-      /* write in the socket */ 
-      char message[256];
-      snprintf(message, sizeof(message), "I got your message: %s", a.data);
-      //printf("teste: %s", message);
-      n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
-      if (n < 0) 
-        printf("ERROR writing to socket\n");
+void client_thread(int newsockfd, int sockfd){
+  MESSAGE a;
+
+  int running = 1, n;
+  while (running) {
+    /* read from the socket */
+    n = read(newsockfd,(void*) &a, sizeof(a));
+
+    if (n < 0) 
+      printf("ERROR reading from socket\n");
+    else { 
+      printf("%s: %d\n",a.data, a.number);
+    }
+    
+    /* write in the socket */ 
+    char message[256];
+    snprintf(message, sizeof(message), "I got your message: %s", a.data);
+    //printf("teste: %s", message);
+    n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
+    if (n < 0) 
+      printf("ERROR writing to socket\n");
+
+    if (a.number == 10) {
+      close(newsockfd);
+      close(sockfd);
+      running = 0;
+    }
 
   }
-  close(newsockfd);
-  close(sockfd);
-	return 0; 
+
 }
