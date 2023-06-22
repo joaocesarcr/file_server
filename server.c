@@ -20,6 +20,8 @@ int main(int argc, char *argv[]) {
 	clilen = sizeof(struct sockaddr_in);
 
   sockfd = create_connection();
+  if (sockfd == -1)
+    return -1;
 	// tells the socket that new connections shall be accepted
 	listen(sockfd, 5);
   printf("Waiting accept\n");
@@ -35,9 +37,9 @@ int main(int argc, char *argv[]) {
     pthread_t th1;
     pthread_create(&th1, NULL, client_thread, &newsockfd);
     client_id++;
-    pthread_join(th1, NULL);
-    printf("Ended client %d\n", client_id);
-    close(newsockfd);
+//    pthread_join(th1, NULL);
+//    printf("Ended client %d\n", client_id);
+//    close(newsockfd);
 
     //client_thread(newsockfd, sockfd);
     }
@@ -53,26 +55,27 @@ void *client_thread(void *arg){
     /* read from the socket */
     n = read(newsockfd,(void*) &a, sizeof(a));
 
-    if (n < 0) 
+    if (n < 0) {
       printf("ERROR reading from socket\n");
+      return (void*) -1;
+    }
     else { 
       printf("Received from client: %s-%d\n",a.data, a.number);
-    }
-    
-    /* write in the socket */ 
-    char message[256];
-    snprintf(message, sizeof(message), "I got your message: %s", a.data);
-    //printf("teste: %s", message);
-    n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
-    if (n < 0) 
-      printf("ERROR writing to socket\n");
+      /* write in the socket */ 
+      char message[256];
+      snprintf(message, sizeof(message), "I got your message: %s", a.data);
+      //printf("teste: %s", message);
+      n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
+      if (n < 0) 
+        printf("ERROR writing to socket\n");
 
-    if (a.number == 2) {
-      close(newsockfd);
-      running = 0;
-      printf("Ending connection\n");
+      if (a.number == 2) {
+        running = 0;
+        printf("Ending connection\n");
+      }
     }
   }
+  close(newsockfd);
   printf("Connection ended\n");
 }
 
