@@ -32,8 +32,6 @@ int main(int argc, char *argv[])
 
       /* write in the socket */
       n = write(sockfd, (void*) &a, sizeof(MESSAGE));
-      sleep(1);
-      a.number++;
       if (n < 0) 
         printf("ERROR writing to socket\n");
 
@@ -48,7 +46,8 @@ int main(int argc, char *argv[])
         printf("ERROR reading from socket\n");
 
       printf("%d - Answer: %s\n",a.number,buffer);
-
+      sleep(4);
+      a.number++;
       if (a.number == 3)
         running = 0;
 
