@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#include "./SerDes/message_struct.h"
+#include "./h/message_struct.h"
 #define PORT 4000
 
 int createConnection(char *argv[]);
@@ -24,7 +24,8 @@ int main(int argc, char *argv[])
 
     MESSAGE a;	
     a.number = 0;;	
-    while (1) {
+    int running = 1;
+    do {
       int n;
       strncpy(a.data, "Sending packet", MAX_MESSAGE_LENGTH);
       //printf("teste: %s\n", a.data);
@@ -34,20 +35,25 @@ int main(int argc, char *argv[])
       sleep(1);
       a.number++;
       if (n < 0) 
-      printf("ERROR writing to socket\n");
+        printf("ERROR writing to socket\n");
 
       bzero(buffer,256);
     
-    /* read from the socket */
+      /* read from the socket */
       do {
         n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
       } while (n < MAX_MESSAGE_LENGTH);
 
       if (n < 0) 
-      printf("ERROR reading from socket\n");
+        printf("ERROR reading from socket\n");
 
-      printf("%s\n",buffer);
-    }
+      printf("%d - Answer: %s\n",a.number,buffer);
+
+      if (a.number == 3)
+        running = 0;
+
+    } while (running);
+    printf("Ending connection\n");
 
     close(sockfd);
     return 0;
