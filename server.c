@@ -30,18 +30,13 @@ int main(int argc, char *argv[]) {
 	
   while (1) {
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+    client_id++;
     if (newsockfd == -1) 
       printf("ERROR on accept");
 
     printf("Accepted\n");
     pthread_t th1;
     pthread_create(&th1, NULL, client_thread, &newsockfd);
-    client_id++;
-//    pthread_join(th1, NULL);
-//    printf("Ended client %d\n", client_id);
-//    close(newsockfd);
-
-    //client_thread(newsockfd, sockfd);
     }
   
 	return 0; 
