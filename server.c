@@ -55,6 +55,11 @@ void *client_thread(void *arg){
       printf("ERROR reading from socket\n");
       return (void*) -1;
     }
+    else
+      if (strcmp(a.command, "exit\n")) {
+        running = 0;
+      }
+    
     else { 
       printf("%s: %s\n",a.client, a.command);
       handleInput(a.command);
