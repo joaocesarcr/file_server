@@ -34,7 +34,6 @@ int main(int argc, char *argv[])
 		char buffer[MAX_MESSAGE_LENGTH];
 
     MESSAGE a;	
-    a.number = 0;
     strncpy(a.client, "client1", MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
@@ -58,12 +57,8 @@ int main(int argc, char *argv[])
       if (n < 0) 
         printf("ERROR reading from socket\n");
 
-      printf("%d - Answer: %s\n",a.number,buffer);
+      printf("Answer: %s\n",buffer);
       sleep(4);
-      a.number++;
-      if (a.number == 3)
-        running = 0;
-
     } while (running);
     printf("Ending connection\n");
 

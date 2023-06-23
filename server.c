@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "./commands.c"
+#include "./handleClientInput.c"
 #include "./h/message_struct.h"
 #define PORT 4000
 
@@ -65,11 +65,6 @@ void *client_thread(void *arg){
       n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
       if (n < 0) 
         printf("ERROR writing to socket\n");
-
-      if (a.number == 2) {
-        running = 0;
-        printf("Ending connection\n");
-      }
     }
   }
   close(newsockfd);
