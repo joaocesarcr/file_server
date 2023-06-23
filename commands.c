@@ -64,38 +64,28 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput() {
+int handleInput(char* command) {
     char input[20];
-
-    while (1) {
-        printf("Enter a command: ");
-        scanf("%s", input);
-
-        // Convert the input to lowercase for case-insensitive comparison
-        for (int i = 0; i < strlen(input); i++) {
-            input[i] = tolower(input[i]);
-        }
-
-        // Find the command in the dictionary
-        int found = 0;
-        for (int i = 0; i < numCommands; i++) {
-            if (strcmp(input, commands[i].command) == 0) {
-                if (commands[i].function != NULL) {
-                    commands[i].function();
-                } else {
-                    printf("Exiting the program.\n");
-                    return 0;
-                }
-                found = 1;
-                break;
+    // Remove \n
+    command[strcspn(command, "\n")] = 0;
+    // Find the command in the dictionary
+    int found = 0;
+    for (int i = 0; i < numCommands; i++) {
+        if (strcmp(command, commands[i].command) == 0) {
+            if (commands[i].function != NULL) {
+                commands[i].function();
+            } else {
+                printf("Exiting the program.\n");
+                return 0;
             }
-        }
-
-        if (!found) {
-            printf("Invalid command.\n");
+            found = 1;
+            break;
         }
     }
 
+    if (!found) {
+        printf("Invalid command.\n");
+    }
     return 0;
 }
 

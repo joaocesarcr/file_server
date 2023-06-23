@@ -8,18 +8,23 @@
 #include <netdb.h> 
 
 #include "./h/message_struct.h"
-#include "./commands.c"
 #define PORT 4000
 
 int createConnection(char *argv[]);
+// ./myClient <username> <server_ip_address> <port>
+char* username = "client1";
 
 int main(int argc, char *argv[])
 {
+  /*
     if (strcmp(argv[1], "command\n")) {
       printf("Testando inputs\n");
-      handleInput();
+      printf("Enter a command: ");
+      scanf("%s", input);
+
     }
 
+      */
 		if (argc < 2) {
       fprintf(stderr,"usage %s hostname\n", argv[0]);
       exit(0);
@@ -29,12 +34,14 @@ int main(int argc, char *argv[])
 		char buffer[MAX_MESSAGE_LENGTH];
 
     MESSAGE a;	
-    a.number = 0;;	
+    a.number = 0;
+    strncpy(a.client, "client1", MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
       int n;
-      strncpy(a.data, "Sending packet", MAX_MESSAGE_LENGTH);
+      strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
       //printf("teste: %s\n", a.data);
+      scanf("%s", a.command);
 
       /* write in the socket */
       n = write(sockfd, (void*) &a, sizeof(MESSAGE));

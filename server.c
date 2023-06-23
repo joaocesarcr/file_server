@@ -1,4 +1,3 @@
-#include "./h/message_struct.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "./commands.c"
+#include "./h/message_struct.h"
 #define PORT 4000
 
 void *client_thread(void* arg);
@@ -55,10 +56,11 @@ void *client_thread(void *arg){
       return (void*) -1;
     }
     else { 
-      printf("Received from client: %s-%d\n",a.data, a.number);
+      printf("%s: %s\n",a.client, a.command);
+      handleInput(a.command);
       /* write in the socket */ 
       char message[256];
-      snprintf(message, sizeof(message), "I got your message: %s", a.data);
+      snprintf(message, sizeof(message), "I got your message: %s", a.command);
       //printf("teste: %s", message);
       n = write(newsockfd,message, MAX_MESSAGE_LENGTH);
       if (n < 0) 
