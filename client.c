@@ -8,12 +8,18 @@
 #include <netdb.h> 
 
 #include "./h/message_struct.h"
+#include "./commands.c"
 #define PORT 4000
 
 int createConnection(char *argv[]);
 
 int main(int argc, char *argv[])
 {
+    if (strcmp(argv[1], "command\n")) {
+      printf("Testando inputs\n");
+      handleInput();
+    }
+
 		if (argc < 2) {
       fprintf(stderr,"usage %s hostname\n", argv[0]);
       exit(0);
