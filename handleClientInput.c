@@ -27,7 +27,7 @@ COMMAND commands[] = {
     {"ls", handleLs},
     {"lc", handleLc},
     {"gsd", handleGsd},
-    {"exit", NULL} // Client side (client.c)
+    {"exit", NULL} // Implemented on client.c and server.c
 };
 
 // Number of commands in the dictionary
