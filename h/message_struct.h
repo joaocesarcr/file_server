@@ -1,6 +1,8 @@
 #define MESSAGE_LENGTH 288
 #define MESSAGE_DATA_LENGTH 256
 #define MAX_MESSAGE_LENGTH 256
+
+#pragma once
 // 32 int
 // 256 str 
 typedef struct MESSAGE_t {

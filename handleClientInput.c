@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
+
+#include "./h/message_struct.h"
 
 // TODO: Usar hash aqui ao invés de percorrer um array
 //
@@ -9,12 +12,12 @@
 void handleUpload();
 void handleDownload();
 void handleDelete();
-void handleLs();
+void handleLs(MESSAGE message);
 void handleLc();
 void handleGsd();
 
 // Command dictionary structure
-typedef struct {
+typedef struct COMMAND_T {
     const char* command;
     void (*function)();
 } COMMAND;
@@ -35,23 +38,39 @@ const int numCommands = sizeof(commands) / sizeof(commands[0]);
 
 // Function implementations
 void handleUpload() {
-    printf("Upload command selected.\n");
+  printf("Upload command selected.\n");
     // Your upload code here
 }
 
 void handleDownload() {
-    printf("Download command selected.\n");
+  printf("Download command selected.\n");
     // Your download code here
 }
 
 void handleDelete() {
-    printf("Delete command selected.\n");
+  printf("Delete command selected.\n");
     // Your delete code here
 }
 
-void handleLs() {
-    printf("LS command selected.\n");
-    // Your ls code here
+void handleLs(MESSAGE data) {
+    printf("LS command selected!\n");
+    printf("Client name: %s\n", data.client);
+    
+
+    char location[256] = "server_files/"; // Declare 'location' as an array of characters
+    strcat(location, data.client);
+    printf("Location: %s\n", location);
+    
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(location);
+    
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            printf("%s\n", dir->d_name);
+        }
+        closedir(d);
+    }
 }
 
 void handleLc() {
@@ -64,16 +83,15 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput(char* command) {
-    char input[20];
+int handleInput(MESSAGE message) {
     // Remove \n
-    command[strcspn(command, "\n")] = 0;
+    message.command[strcspn(message.command, "\n")] = 0;
     // Find the command in the dictionary
     int found = 0;
     for (int i = 0; i < numCommands; i++) {
-        if (strcmp(command, commands[i].command) == 0) {
+        if (strcmp(message.command, commands[i].command) == 0) {
             if (commands[i].function != NULL) {
-                commands[i].function();
+                commands[i].function(message);
             } else {
                 printf("Exiting the program.\n");
                 return 0;
