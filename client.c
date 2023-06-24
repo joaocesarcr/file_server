@@ -41,12 +41,17 @@ int main(int argc, char *argv[])
       strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
       //printf("teste: %s\n", a.data);
       scanf("%s", a.command);
-          
+         
 
       /* write in the socket */
       n = write(sockfd, (void*) &a, sizeof(MESSAGE));
       if (n < 0) 
         printf("ERROR writing to socket\n");
+      if (!strcmp(a.command, "exit")) {
+        close(sockfd);
+        running = 0;
+        break;
+      }
 
       bzero(buffer,256);
     
@@ -60,12 +65,8 @@ int main(int argc, char *argv[])
 
       printf("Answer: %s\n",buffer);
 
-      if (strcmp(a.command, "exit\n")) {
-        close(sockfd);
-        break;
-      }
 
-      sleep(4);
+
     } while (running);
     printf("Ending connection\n");
 

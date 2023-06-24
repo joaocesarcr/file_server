@@ -55,14 +55,15 @@ void *client_thread(void *arg){
       printf("ERROR reading from socket\n");
       return (void*) -1;
     }
-    else
-      if (strcmp(a.command, "exit\n")) {
-        running = 0;
-      }
+    if (!strcmp(a.command, "exit")) {
+      printf("Ending Connection\n");
+      running = 0;
+      break;
+    }
     
     else { 
       printf("%s: %s\n",a.client, a.command);
-      handleInput(a.command);
+      handleInput(a);
       /* write in the socket */ 
       char message[256];
       snprintf(message, sizeof(message), "I got your message: %s", a.command);
