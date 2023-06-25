@@ -31,7 +31,7 @@ void handleDownload() {
 }
 
 void handleDelete(MESSAGE message) {
-    printf("LS command selected!\n");
+    printf("Delete command selected.\n");
     // Your delete code here
 }
 
