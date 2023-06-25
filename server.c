@@ -46,31 +46,30 @@ int main(int argc, char *argv[]) {
 }
 
 void *client_thread(void *arg) {
-    MESSAGE a;
+    MESSAGE message;
     int newsockfd = *(int *) arg;
-    int running = 1, n = 0;
+    int running = 1; ssize_t n;
     while (running) {
         /* read from the socket */
         do {
-            n = read(newsockfd, (void *) &a, sizeof(a));
-        } while (n < sizeof(a));
+            n = read(newsockfd, (void *) &message, sizeof(message));
+        } while (n < sizeof(message));
 
         if (n < 0) {
             printf("ERROR reading from socket\n");
             return (void *) -1;
         }
-        if (!strcmp(a.command, "exit")) {
+        if (!strcmp(message.command, "exit")) {
             printf("Ending Connection\n");
             running = 0;
-            break;
         } else {
-            printf("%s: %s\n", a.client, a.command);
-            handleInput(a, newsockfd);
+            printf("%s: %s\n", message.client, message.command);
+            handleInput(message, newsockfd);
             /* write in the socket */
-            char message[256];
-            snprintf(message, sizeof(message), "I got your message: %s", a.command);
+            char messageReceived[256];
+            snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
             //printf("teste: %s", message);
-            n = write(newsockfd, message, MAX_MESSAGE_LENGTH);
+            n = write(newsockfd, messageReceived, MAX_MESSAGE_LENGTH);
             if (n < 0)
                 printf("ERROR writing to socket\n");
         }

@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
         scanf("%s", input);
 
       }
+    */
 
-        */
     if (argc < 2) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
         exit(0);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     strncpy(a.client, "client1", MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
-        int n;
+        ssize_t n;
         //strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
         //printf("teste: %s\n", a.data);
 
@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
             printf("ERROR reading from socket\n");
 
         printf("Answer: %s\n", buffer);
-
 
     } while (running);
     printf("Ending connection\n");
@@ -95,7 +94,6 @@ int createConnection(char *argv[]) {
     serv_addr.sin_port = htons(PORT);
     serv_addr.sin_addr = *((struct in_addr *) server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
-
 
     if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         printf("ERROR connecting\n");
