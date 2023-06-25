@@ -1,14 +1,11 @@
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "./handleClientInput.c"
-#include "./h/message_struct.h"
+#include "./handleClientInput.cpp"
 
 #define PORT 4000
 
@@ -19,7 +16,7 @@ int create_connection();
 int main(int argc, char *argv[]) {
     int sockfd, newsockfd, n;
     socklen_t clilen;
-    struct sockaddr_in cli_addr;
+    struct sockaddr_in cli_addr{};
     clilen = sizeof(struct sockaddr_in);
 
     sockfd = create_connection();
@@ -38,7 +35,7 @@ int main(int argc, char *argv[]) {
         else {
             printf("Accepted\n");
             pthread_t th1;
-            pthread_create(&th1, NULL, client_thread, &newsockfd);
+            pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
     }
 
@@ -66,9 +63,9 @@ void *client_thread(void *arg) {
             printf("%s: %s\n", message.client, message.command);
             handleInput(message, newsockfd);
             /* write in the socket */
-            char messageReceived[256];
+            char messageReceived[MAX_MESSAGE_LENGTH + 1];
             snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
-            //printf("teste: %s", message);
+            printf("teste: %s", messageReceived);
             n = write(newsockfd, messageReceived, MAX_MESSAGE_LENGTH);
             if (n < 0)
                 printf("ERROR writing to socket\n");
@@ -81,7 +78,7 @@ void *client_thread(void *arg) {
 int create_connection() {
     int sockfd, bindReturn;
     char buffer[MAX_MESSAGE_LENGTH];
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr{};
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1)
