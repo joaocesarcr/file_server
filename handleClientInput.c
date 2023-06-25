@@ -6,8 +6,6 @@
 
 #include "./h/message_struct.h"
 
-// TODO: Usar hash aqui ao invés de percorrer um array
-//
 // Function prototypes
 void handleUpload();
 void handleDownload();
@@ -16,55 +14,36 @@ void handleLs(MESSAGE message);
 void handleLc();
 void handleGsd();
 
-// Command dictionary structure
-typedef struct COMMAND_T {
-    const char* command;
-    void (*function)();
-} COMMAND;
-
-// Command dictionary
-COMMAND commands[] = {
-    {"upload", handleUpload},
-    {"download", handleDownload},
-    {"delete", handleDelete},
-    {"ls", handleLs},
-    {"lc", handleLc},
-    {"gsd", handleGsd},
-    {"exit", NULL} // Implemented on client.c and server.c
-};
-
-// Number of commands in the dictionary
-const int numCommands = sizeof(commands) / sizeof(commands[0]);
+int handleInput(MESSAGE message,int socket);
 
 // Function implementations
 void handleUpload() {
-  printf("Upload command selected.\n");
+    printf("Upload command selected.\n");
     // Your upload code here
 }
 
 void handleDownload() {
-  printf("Download command selected.\n");
+    printf("Download command selected.\n");
     // Your download code here
 }
 
 void handleDelete() {
-  printf("Delete command selected.\n");
+    printf("Delete command selected.\n");
     // Your delete code here
 }
 
-void handleLs(MESSAGE data) {
+void handleLs(MESSAGE message) {
     printf("LS command selected!\n");
-    printf("Client name: %s\n", data.client);
-    
+    printf("Client name: %s\n", message.client);
 
     char location[256] = "server_files/"; // Declare 'location' as an array of characters
-    strcat(location, data.client);
+    strcat(location, message.client);
     printf("Location: %s\n", location);
-    
+
     DIR *d;
     struct dirent *dir;
     d = opendir(location);
-    
+
     if (d) {
         while ((dir = readdir(d)) != NULL) {
             printf("%s\n", dir->d_name);
@@ -83,27 +62,29 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput(MESSAGE message) {
+int handleInput(MESSAGE message,int socket) {
     // Remove \n
     message.command[strcspn(message.command, "\n")] = 0;
-    // Find the command in the dictionary
-    int found = 0;
-    for (int i = 0; i < numCommands; i++) {
-        if (strcmp(message.command, commands[i].command) == 0) {
-            if (commands[i].function != NULL) {
-                commands[i].function(message);
-            } else {
-                printf("Exiting the program.\n");
-                return 0;
-            }
-            found = 1;
-            break;
-        }
-    }
 
-    if (!found) {
+    if (strcmp(message.command, "upload") == 0) {
+        handleUpload();
+    } else if (strcmp(message.command, "download") == 0) {
+        handleDownload();
+    } else if (strcmp(message.command, "delete") == 0) {
+        handleDelete();
+    } else if (strcmp(message.command, "ls") == 0) {
+        handleLs(message);
+    } else if (strcmp(message.command, "lc") == 0) {
+        handleLc();
+    } else if (strcmp(message.command, "gsd") == 0) {
+        handleGsd();
+    } else if (strcmp(message.command, "exit") == 0) {
+        printf("Exiting the program.\n");
+        return 0;
+    } else {
         printf("Invalid command.\n");
     }
+
     return 0;
 }
 

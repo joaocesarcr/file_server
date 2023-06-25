@@ -38,10 +38,10 @@ int main(int argc, char *argv[])
     int running = 1;
     do {
       int n;
-      strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
+      //strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
       //printf("teste: %s\n", a.data);
+
       scanf("%s", a.command);
-         
 
       /* write in the socket */
       n = write(sockfd, (void*) &a, sizeof(MESSAGE));
