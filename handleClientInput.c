@@ -8,13 +8,18 @@
 
 // Function prototypes
 void handleUpload();
+
 void handleDownload();
+
 void handleDelete();
+
 void handleLs(MESSAGE message);
+
 void handleLc();
+
 void handleGsd();
 
-int handleInput(MESSAGE message,int socket);
+int handleInput(MESSAGE message, int socket);
 
 // Function implementations
 void handleUpload() {
@@ -62,7 +67,7 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput(MESSAGE message,int socket) {
+int handleInput(MESSAGE message, int socket) {
     // Remove \n
     message.command[strcspn(message.command, "\n")] = 0;
 
