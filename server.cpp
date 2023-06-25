@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     while (1) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd == -1)
-            printf("ERROR on accept");
+            printf("ERROR on accept\n");
         else {
             printf("Accepted\n");
             pthread_t th1;
@@ -65,7 +65,7 @@ void *client_thread(void *arg) {
             /* write in the socket */
             char messageReceived[MAX_MESSAGE_LENGTH + 1];
             snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
-            printf("teste: %s", messageReceived);
+//            printf("teste: %s", messageReceived);
             n = write(newsockfd, messageReceived, MAX_MESSAGE_LENGTH);
             if (n < 0)
                 printf("ERROR writing to socket\n");
@@ -82,7 +82,7 @@ int create_connection() {
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1)
-        printf("ERROR opening socket");
+        printf("ERROR opening socket\n");
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
@@ -93,7 +93,7 @@ int create_connection() {
     // by the file descriptor sockfd
     bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (bindReturn < 0)
-        printf("ERROR on binding");
+        printf("ERROR on binding\n");
     return sockfd;
 
 }

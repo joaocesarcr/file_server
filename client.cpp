@@ -2,11 +2,13 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <cstring>
+#include <string>
+#include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "./h/message_struct.h"
+#include "./h/message_struct.hpp"
 
 #define PORT 4000
 
@@ -40,8 +42,9 @@ int main(int argc, char *argv[]) {
         ssize_t n;
         //strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
         //printf("teste: %s\n", a.data);
-
-        scanf("%s", a.command);
+        std::string temp;
+        getline(std::cin, temp);
+        strcpy(a.command, temp.c_str());
 
         /* write in the socket */
         n = write(sockfd, (void *) &a, sizeof(MESSAGE));
