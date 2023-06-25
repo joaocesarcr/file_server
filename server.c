@@ -15,7 +15,6 @@ void *client_thread(void* arg);
 int create_connection();
 int main(int argc, char *argv[]) {
   int sockfd, newsockfd, n;
-  int client_id = 0;
 	socklen_t clilen;
   struct sockaddr_in cli_addr;
 	clilen = sizeof(struct sockaddr_in);
@@ -31,14 +30,14 @@ int main(int argc, char *argv[]) {
 	
   while (1) {
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-    client_id++;
     if (newsockfd == -1) 
       printf("ERROR on accept");
-
-    printf("Accepted\n");
-    pthread_t th1;
-    pthread_create(&th1, NULL, client_thread, &newsockfd);
+    else {
+      printf("Accepted\n");
+      pthread_t th1;
+      pthread_create(&th1, NULL, client_thread, &newsockfd);
     }
+  }
   
 	return 0; 
 }
@@ -46,10 +45,12 @@ int main(int argc, char *argv[]) {
 void *client_thread(void *arg){
   MESSAGE a;
   int newsockfd = *(int*) arg;
-  int running = 1, n;
+  int running = 1, n = 0;
   while (running) {
     /* read from the socket */
-    n = read(newsockfd,(void*) &a, sizeof(a));
+    do {
+      n = read(newsockfd,(void*) &a, sizeof(a));
+    } while (n  < sizeof(a));
 
     if (n < 0) {
       printf("ERROR reading from socket\n");
@@ -63,7 +64,7 @@ void *client_thread(void *arg){
     
     else { 
       printf("%s: %s\n",a.client, a.command);
-      handleInput(a);
+      handleInput(a,newsockfd);
       /* write in the socket */ 
       char message[256];
       snprintf(message, sizeof(message), "I got your message: %s", a.command);
