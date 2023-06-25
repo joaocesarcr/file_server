@@ -1,7 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <cstdio>
+#include <cstring>
 #include <dirent.h>
 
 #include "./h/message_struct.h"
@@ -11,7 +9,7 @@ void handleUpload();
 
 void handleDownload();
 
-void handleDelete();
+void handleDelete(MESSAGE message);
 
 void handleLs(MESSAGE message);
 
@@ -32,8 +30,8 @@ void handleDownload() {
     // Your download code here
 }
 
-void handleDelete() {
-    printf("Delete command selected.\n");
+void handleDelete(MESSAGE message) {
+    printf("LS command selected!\n");
     // Your delete code here
 }
 
@@ -50,7 +48,7 @@ void handleLs(MESSAGE message) {
     d = opendir(location);
 
     if (d) {
-        while ((dir = readdir(d)) != NULL) {
+        while ((dir = readdir(d)) != nullptr) {
             printf("%s\n", dir->d_name);
         }
         closedir(d);
@@ -76,7 +74,7 @@ int handleInput(MESSAGE message, int socket) {
     } else if (strcmp(message.command, "download") == 0) {
         handleDownload();
     } else if (strcmp(message.command, "delete") == 0) {
-        handleDelete();
+        handleDelete(message);
     } else if (strcmp(message.command, "ls") == 0) {
         handleLs(message);
     } else if (strcmp(message.command, "lc") == 0) {
