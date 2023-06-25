@@ -1,8 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
+#include <cstring>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -14,7 +13,7 @@
 int createConnection(char *argv[]);
 
 // ./myClient <username> <server_ip_address> <port>
-char *username = "client1";
+char* username = "client1";
 
 int main(int argc, char *argv[]) {
     /*
@@ -75,12 +74,12 @@ int main(int argc, char *argv[]) {
 
 int createConnection(char *argv[]) {
     int sockfd, n;
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr{};
     struct hostent *server;
 
-
+    printf("%s", argv[1]);
     server = gethostbyname(argv[1]);
-    if (server == NULL) {
+    if (server == nullptr) {
         fprintf(stderr, "ERROR, no such host\n");
         exit(0);
     }
