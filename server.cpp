@@ -16,7 +16,7 @@ int create_connection();
 int main(int argc, char *argv[]) {
     int sockfd, newsockfd;
     socklen_t clilen;
-    struct sockaddr_in cli_addr{};
+    struct sockaddr_in cli_addr;
     clilen = sizeof(struct sockaddr_in);
 
     sockfd = create_connection();
@@ -59,7 +59,7 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            handleInput(message);
+            handleInput(message, newsockfd);
             /* write in the socket */
             char messageReceived[MAX_MESSAGE_LENGTH + 1];
             snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
@@ -75,7 +75,7 @@ void *client_thread(void *arg) {
 
 int create_connection() {
     int sockfd, bindReturn;
-    struct sockaddr_in serv_addr{};
+    struct sockaddr_in serv_addr;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {

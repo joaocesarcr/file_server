@@ -16,7 +16,7 @@ void handleDownload();
 
 void handleDelete(MESSAGE message);
 
-void handleLs(MESSAGE message);
+void handleLs(MESSAGE message, int socket);
 
 void handleLc();
 
@@ -78,7 +78,7 @@ void handleDelete(MESSAGE message) {
     }
 }
 
-void handleLs(MESSAGE message) {
+void handleLs(MESSAGE message, int socket) {
     printf("LS command selected!\n");
     printf("Client name: %s\n", message.client);
 
@@ -89,13 +89,16 @@ void handleLs(MESSAGE message) {
     DIR *d;
     struct dirent *dir;
     d = opendir(location);
-
+    char directoryNames[50][256]; // Array to store directory names
+    int n,count = 0; // Count of directory names
+    
     if (d) {
         while ((dir = readdir(d))) {
-            printf("%s\n", dir->d_name);
+            strcpy(directoryNames[count], dir->d_name);
+            count++;
         }
-        printf("\n");
         closedir(d);
+        n = write(socket, directoryNames, 12800);
     }
 }
 
@@ -109,7 +112,7 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput(MESSAGE message) {
+int handleInput(MESSAGE message, int socket) {
     // Remove \n
     message.command[strcspn(message.command, "\n")] = 0;
 
@@ -123,7 +126,7 @@ int handleInput(MESSAGE message) {
     } else if (mainCommand == "delete") {
         handleDelete(message);
     } else if (mainCommand == "ls") {
-        handleLs(message);
+        handleLs(message,socket);
     } else if (mainCommand == "lc") {
         handleLc();
     } else if (mainCommand == "gsd") {

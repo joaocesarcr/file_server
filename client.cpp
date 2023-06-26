@@ -52,15 +52,22 @@ int main(int argc, char *argv[]) {
             close(sockfd);
             break;
         }
+        if (!strcmp(a.command, "ls")) {
+            char directoryNames[50][256];
+            n = read(sockfd, directoryNames, 12800);
+            for (int i = 0; i < 50; i++) {
+                  printf("%s", directoryNames[i]);
+            }
+        }
+        else { 
+          bzero(buffer, 256);
 
-        bzero(buffer, 256);
-
-        /* read from the socket */
-        do {
-            n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
-        } while (n < MAX_MESSAGE_LENGTH);
-
-        printf("Answer: %s\n\n", buffer);
+          /* read from the socket */
+          do {
+              n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
+          } while (n < MAX_MESSAGE_LENGTH);
+          printf("Answer: %s\n\n", buffer);
+        }
 
     } while (running);
     printf("Ending connection\n");
@@ -71,7 +78,7 @@ int main(int argc, char *argv[]) {
 
 int createConnection(char *argv[]) {
     int sockfd;
-    struct sockaddr_in serv_addr{};
+    struct sockaddr_in serv_addr;
     struct hostent *server;
 
     server = gethostbyname(argv[2]);
