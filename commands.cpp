@@ -6,7 +6,7 @@ int main() {
     struct dirent *dir;
     d = opendir(".");
     if (d) {
-        while ((dir = readdir(d)) != nullptr) {
+        while ((dir = readdir(d))) {
             printf("%s\n", dir->d_name);
         }
         closedir(d);

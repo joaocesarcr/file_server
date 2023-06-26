@@ -22,7 +22,7 @@ void handleLc();
 
 void handleGsd();
 
-int handleInput(MESSAGE message, int socket);
+int handleInput(MESSAGE message);
 
 std::vector<std::string> splitString(const std::string &str) {
     string s;
@@ -30,7 +30,6 @@ std::vector<std::string> splitString(const std::string &str) {
     stringstream ss(str);
 
     vector<string> v;
-    printf("");
     while (getline(ss, s, ' ')) {
         if (s != " ") {
             v.push_back(s);
@@ -64,15 +63,17 @@ void handleDelete(MESSAGE message) {
     d = opendir(location);
 
     if (d) {
-        while ((dir = readdir(d)) != nullptr) {
+        while ((dir = readdir(d))) {
             if (dir->d_name == message.splitCommand[1]) {
                 strcat(location, "/");
                 strcat(location, dir->d_name);
                 remove(location);
-                printf("Successfully deleted file: %s\n\n", dir->d_name);
-                break;
+                printf("Successfully deleted file: %s\n\n", message.splitCommand[1].c_str());
+                closedir(d);
+                return;
             }
         }
+        printf("Fail to delete file [%s]: not found\n\n", message.splitCommand[1].c_str());
         closedir(d);
     }
 }
@@ -90,7 +91,7 @@ void handleLs(MESSAGE message) {
     d = opendir(location);
 
     if (d) {
-        while ((dir = readdir(d)) != nullptr) {
+        while ((dir = readdir(d))) {
             printf("%s\n", dir->d_name);
         }
         printf("\n");
@@ -108,12 +109,12 @@ void handleGsd() {
     // Your gsd code here
 }
 
-int handleInput(MESSAGE message, int socket) {
+int handleInput(MESSAGE message) {
     // Remove \n
     message.command[strcspn(message.command, "\n")] = 0;
 
     message.splitCommand = splitString(message.command);
-    string mainCommand = message.splitCommand[0];
+    const string &mainCommand = message.splitCommand[0];
 
     if (mainCommand == "upload") {
         handleUpload();
@@ -129,9 +130,8 @@ int handleInput(MESSAGE message, int socket) {
         handleGsd();
     } else if (mainCommand == "exit") {
         printf("Exiting the program.\n");
-        return 0;
     } else {
-        printf("Invalid command.\n");
+        printf("Invalid command.\n\n");
     }
 
     return 0;
