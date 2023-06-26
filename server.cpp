@@ -14,26 +14,24 @@ void *client_thread(void *arg);
 int create_connection();
 
 int main(int argc, char *argv[]) {
-    int sockfd, newsockfd, n;
+    int sockfd, newsockfd;
     socklen_t clilen;
     struct sockaddr_in cli_addr{};
     clilen = sizeof(struct sockaddr_in);
 
     sockfd = create_connection();
-    if (sockfd == -1)
-        return -1;
     // tells the socket that new connections shall be accepted
     listen(sockfd, 5);
     printf("Waiting accept\n");
 
     // get a new socket with a new incoming connection
 
-    while (1) {
+    while (true) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd == -1)
             printf("ERROR on accept\n");
         else {
-            printf("Accepted\n");
+            printf("Connection established successfully.\n\n");
             pthread_t th1;
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
@@ -45,7 +43,8 @@ int main(int argc, char *argv[]) {
 void *client_thread(void *arg) {
     MESSAGE message;
     int newsockfd = *(int *) arg;
-    int running = 1; ssize_t n;
+    int running = 1;
+    ssize_t n;
     while (running) {
         /* read from the socket */
         do {
@@ -60,8 +59,7 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            printf("%s: %s\n", message.client, message.command);
-            handleInput(message, newsockfd);
+            handleInput(message);
             /* write in the socket */
             char messageReceived[MAX_MESSAGE_LENGTH + 1];
             snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
@@ -77,12 +75,13 @@ void *client_thread(void *arg) {
 
 int create_connection() {
     int sockfd, bindReturn;
-    char buffer[MAX_MESSAGE_LENGTH];
     struct sockaddr_in serv_addr{};
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
+    if (sockfd == -1) {
         printf("ERROR opening socket\n");
+        exit(-1);
+    }
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
@@ -92,8 +91,10 @@ int create_connection() {
     //  assigns the address specified by addr to the socket referred to
     // by the file descriptor sockfd
     bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-    if (bindReturn < 0)
+    if (bindReturn < 0) {
         printf("ERROR on binding\n");
+        exit(-1);
+    }
     return sockfd;
 
 }

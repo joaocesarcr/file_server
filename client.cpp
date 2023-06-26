@@ -15,7 +15,6 @@
 int createConnection(char *argv[]);
 
 // ./myClient <username> <server_ip_address> <port>
-char* username = "client1";
 
 int main(int argc, char *argv[]) {
     /*
@@ -26,17 +25,16 @@ int main(int argc, char *argv[]) {
 
       }
     */
-
-    if (argc < 2) {
+    if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
-        exit(0);
+        exit(-1);
     }
 
     int sockfd = createConnection(argv);
     char buffer[MAX_MESSAGE_LENGTH];
 
     MESSAGE a;
-    strncpy(a.client, "client1", MAX_MESSAGE_LENGTH);
+    strncpy(a.client, argv[1], MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
         ssize_t n;
@@ -52,7 +50,6 @@ int main(int argc, char *argv[]) {
             printf("ERROR writing to socket\n");
         if (!strcmp(a.command, "exit")) {
             close(sockfd);
-            running = 0;
             break;
         }
 
@@ -63,10 +60,7 @@ int main(int argc, char *argv[]) {
             n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
         } while (n < MAX_MESSAGE_LENGTH);
 
-        if (n < 0)
-            printf("ERROR reading from socket\n");
-
-        printf("Answer: %s\n", buffer);
+        printf("Answer: %s\n\n", buffer);
 
     } while (running);
     printf("Ending connection\n");
@@ -76,29 +70,34 @@ int main(int argc, char *argv[]) {
 }
 
 int createConnection(char *argv[]) {
-    int sockfd, n;
+    int sockfd;
     struct sockaddr_in serv_addr{};
     struct hostent *server;
 
-    printf("%s", argv[1]);
-    server = gethostbyname(argv[1]);
-    if (server == nullptr) {
+    server = gethostbyname(argv[2]);
+    if (!server) {
         fprintf(stderr, "ERROR, no such host\n");
-        exit(0);
+        exit(-1);
     }
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sockfd == -1)
+    if (sockfd == -1) {
         printf("ERROR opening socket\n");
+        exit(-1);
+    }
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
     serv_addr.sin_addr = *((struct in_addr *) server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
 
-    if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        printf("ERROR connecting\n");
+    if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        printf("ERROR establishing connection. Exiting...\n");
+        exit(-1);
+    }
+
+    printf("Connection established successfully.\n\n");
     return sockfd;
 
 }
