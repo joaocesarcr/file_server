@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
         //strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
         //printf("teste: %s\n", a.data);
         std::string temp;
+        printf("%s: ", a.client);
         getline(std::cin, temp);
         strcpy(a.command, temp.c_str());
 
@@ -56,7 +57,10 @@ int main(int argc, char *argv[]) {
             char directoryNames[50][256];
             n = read(sockfd, directoryNames, 12800);
             for (int i = 0; i < 50; i++) {
-                  printf("%s", directoryNames[i]);
+                  if (!strcmp(directoryNames[i],""))
+                      break;
+                  else 
+                    printf("%s", directoryNames[i]);
             }
         }
         else { 
