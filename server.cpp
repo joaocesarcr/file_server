@@ -59,7 +59,10 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            handleInput(message, newsockfd);
+            CommandHandler handler;
+            handler.socket = newsockfd;
+            handler.message = message;
+            handler.handleInput();
             /* write in the socket */
         }
     }
