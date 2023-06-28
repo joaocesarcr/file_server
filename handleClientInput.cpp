@@ -50,7 +50,9 @@ void handleDownload() {
     // Your download code here
 }
 
-void handleDelete(MESSAGE message) {
+void handleDelete(MESSAGE message, int socket) {
+    char returnMessage[MAX_MESSAGE_LENGTH + 1];
+    int n = 0;
     printf("Delete command selected.\n");
     printf("Client name: %s\n", message.client);
 
@@ -76,6 +78,8 @@ void handleDelete(MESSAGE message) {
         printf("Fail to delete file [%s]: not found\n\n", message.splitCommand[1].c_str());
         closedir(d);
     }
+    snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", message.splitCommand[1].c_str());
+    n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
 }
 
 void handleLs(MESSAGE message, int socket) {
@@ -94,10 +98,13 @@ void handleLs(MESSAGE message, int socket) {
     
     if (d) {
         while ((dir = readdir(d))) {
-            strcpy(directoryNames[count], dir->d_name);
-            count++;
+            if (strcmp(dir->d_name,".") && (strcmp(dir->d_name,".."))) {
+              strcpy(directoryNames[count], strcat(dir->d_name, "\n"));
+              count++;
+            }
         }
         closedir(d);
+        strcpy(directoryNames[count],"");
         n = write(socket, directoryNames, 12800);
     }
 }
@@ -124,7 +131,7 @@ int handleInput(MESSAGE message, int socket) {
     } else if (mainCommand == "download") {
         handleDownload();
     } else if (mainCommand == "delete") {
-        handleDelete(message);
+        handleDelete(message,socket);
     } else if (mainCommand == "ls") {
         handleLs(message,socket);
     } else if (mainCommand == "lc") {

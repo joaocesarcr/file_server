@@ -61,12 +61,6 @@ void *client_thread(void *arg) {
         } else {
             handleInput(message, newsockfd);
             /* write in the socket */
-            char messageReceived[MAX_MESSAGE_LENGTH + 1];
-            snprintf(messageReceived, sizeof(messageReceived), "I got your message: %s", message.command);
-//            printf("teste: %s", messageReceived);
-            n = write(newsockfd, messageReceived, MAX_MESSAGE_LENGTH);
-            if (n < 0)
-                printf("ERROR writing to socket\n");
         }
     }
     close(newsockfd);
