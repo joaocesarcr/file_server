@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 
+#include <sys/stat.h>
 #include "./h/message_struct.hpp"
 
 using namespace std;
@@ -16,12 +17,24 @@ public:
 
     void handleUpload() {
         printf("Upload command selected.\n");
-        // Your upload code here
+        
     }
 
     void handleDownload() {
         printf("Download command selected.\n");
-        // Your download code here
+        char location[256] = "server_files/"; // Declare 'location' as an array of characters
+        strcat(location, message.client);
+        int n;
+        strcat(location, "/");
+        strcat(location, message.splitCommand[1].c_str());
+
+        printf("Location: %s\n", location);
+        struct stat st;
+        stat(location, &st);
+        long size = st.st_size;
+        printf("size: %ld\n", size);
+
+ 
     }
 
     void handleDelete() {
@@ -44,7 +57,10 @@ public:
                     strcat(location, "/");
                     strcat(location, dir->d_name);
                     remove(location);
+
                     printf("Successfully deleted file: %s\n\n", message.splitCommand[1].c_str());
+                    snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", message.splitCommand[1].c_str());
+                    n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
                     closedir(d);
                     return;
                 }
@@ -52,7 +68,7 @@ public:
             printf("Fail to delete file [%s]: not found\n\n", message.splitCommand[1].c_str());
             closedir(d);
         }
-        snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", message.splitCommand[1].c_str());
+        snprintf(returnMessage, sizeof(returnMessage), "Failed to delete %s \n", message.splitCommand[1].c_str());
         n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
     }
 
