@@ -7,13 +7,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sstream>
+#include <vector>
+
+
 
 #include "./h/message_struct.hpp"
 
 #define PORT 4000
 
+using namespace std;
 int createConnection(char *argv[]);
-
+std::vector<std::string> splitString(const std::string &str);
 // ./myClient <username> <server_ip_address> <port>
 
 int main(int argc, char *argv[]) {
@@ -45,6 +50,9 @@ int main(int argc, char *argv[]) {
         getline(std::cin, temp);
         strcpy(a.command, temp.c_str());
 
+        a.splitCommand = splitString(a.command);
+        const string &mainCommand = a.splitCommand[0];
+        printf("%s %s\n", a.splitCommand[0].c_str(),a.splitCommand[1].c_str());
         /* write in the socket */
         n = write(sockfd, (void *) &a, sizeof(MESSAGE));
         if (n < 0)
@@ -63,15 +71,27 @@ int main(int argc, char *argv[]) {
                     printf("%s", directoryNames[i]);
             }
         }
+        
+        if (mainCommand == "download") {
+            long size = 0;
+            printf("Getting file size...\n");
+            //n = read(sockfd, (void*) size, sizeof(long));
+            printf("File size: %ld\n",size);
+        
+        }
+        /*
+         * TODO: vai precisar de uma classe pra saber lidar com a resposta
+         * de cada comando possível do cliente (a resposta nem sempre é do
+         * mesmo tamanho/tipo)
         else { 
           bzero(buffer, 256);
 
-          /* read from the socket */
           do {
               n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
           } while (n < MAX_MESSAGE_LENGTH);
           printf("Answer: %s\n\n", buffer);
         }
+        */
 
     } while (running);
     printf("Ending connection\n");
@@ -112,3 +132,18 @@ int createConnection(char *argv[]) {
     return sockfd;
 
 }
+std::vector<std::string> splitString(const std::string &str) {
+        string s;
+
+        stringstream ss(str);
+
+        vector<string> v;
+        while (getline(ss, s, ' ')) {
+            if (s != " ") {
+                v.push_back(s);
+            }
+        }
+
+        return v;
+    }
+
