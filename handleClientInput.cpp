@@ -29,11 +29,37 @@ public:
         strcat(location, message.splitCommand[1].c_str());
 
         printf("Location: %s\n", location);
+
+        // Send file size 
         struct stat st;
         stat(location, &st);
         long size = st.st_size;
+        // TODO: trocar pra nro de pacotes
         printf("size: %ld\n", size);
         n = write(socket, (void*) &size, sizeof(long));
+
+        /* TODO: usar nro de pacotes 
+        int count = 0;
+        do {
+          count++;
+        } while (count < 5);
+        */ 
+
+        FILE *file;
+        char buffer[size];
+        file = fopen(location, "rb");
+        if (file == NULL) {
+          printf("Error opening file");
+        }
+
+        // Read file contents and send to client
+        size_t bytesRead;
+        while ((bytesRead = fread(buffer, size, 1, file)) > 0) {
+            if (send(socket, buffer, bytesRead, 0) < 0) {
+                printf("Error writing file");
+            }
+        }
+        fclose(file);
  
     }
 

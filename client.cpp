@@ -76,7 +76,26 @@ int main(int argc, char *argv[]) {
             printf("Getting file size...\n");
             n = read(sockfd, (void*) &size, sizeof(long));
             printf("File size: %ld\n", size);
-        
+
+            FILE *file;
+            char buffer[size];
+            // TODO: colocar o argumento
+            file = fopen("received_file.txt", "wb+");
+            if (file == NULL) {
+                printf("Error opening file");
+            }
+
+            // Receive data from the server and write to the file
+            ssize_t bytesRead;
+            while ((bytesRead = read(sockfd, buffer, size)) > 0) {
+                if (fwrite(buffer, 1, bytesRead, file) != bytesRead) {
+                    printf("Error writing file");
+                }
+            }
+
+            // Close the file and socket
+            fclose(file);
+                
         }
         /*
          * TODO: vai precisar de uma classe pra saber lidar com a resposta
