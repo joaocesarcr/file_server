@@ -87,12 +87,9 @@ int main(int argc, char *argv[]) {
 
             // Receive data from the server and write to the file
             ssize_t bytesRead;
-            while ((bytesRead = read(sockfd, buffer, size)) > 0) {
-                if (fwrite(buffer, 1, bytesRead, file) != bytesRead) {
-                    printf("Error writing file");
-                }
-            }
 
+            n = read(sockfd, (void*) buffer, size);
+            fwrite(buffer, size, 1, file);
             // Close the file and socket
             fclose(file);
                 
