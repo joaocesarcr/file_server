@@ -33,7 +33,7 @@ public:
         stat(location, &st);
         long size = st.st_size;
         printf("size: %ld\n", size);
-
+        n = write(socket, (void*) &size, sizeof(long));
  
     }
 

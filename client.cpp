@@ -52,7 +52,6 @@ int main(int argc, char *argv[]) {
 
         a.splitCommand = splitString(a.command);
         const string &mainCommand = a.splitCommand[0];
-        printf("%s %s\n", a.splitCommand[0].c_str(),a.splitCommand[1].c_str());
         /* write in the socket */
         n = write(sockfd, (void *) &a, sizeof(MESSAGE));
         if (n < 0)
@@ -75,8 +74,8 @@ int main(int argc, char *argv[]) {
         if (mainCommand == "download") {
             long size = 0;
             printf("Getting file size...\n");
-            //n = read(sockfd, (void*) size, sizeof(long));
-            printf("File size: %ld\n",size);
+            n = read(sockfd, (void*) &size, sizeof(long));
+            printf("File size: %ld\n", size);
         
         }
         /*
