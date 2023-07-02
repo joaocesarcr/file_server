@@ -37,7 +37,6 @@ public:
         // TODO: trocar pra nro de pacotes
         printf("size: %ld\n", size);
         n = write(socket, (void*) &size, sizeof(long));
-        printf("Passou do write");
 
         /* TODO: usar nro de pacotes 
         int count = 0;
@@ -47,20 +46,19 @@ public:
         */ 
 
         FILE *file;
-        char buffer[size];
+        char* buffer = new char[size + 1];
         file = fopen(location, "rb");
         if (file == NULL) {
           printf("Error opening file");
         }
 
-        printf("File opened");
         // Read file contents and send to client
         size_t bytesRead;
         bytesRead = fread(buffer, size, 1, file);
-        printf("File read: %s",buffer);
+        //printf("File read: %s",buffer);
         write(socket, (void*) buffer, size);
-        printf("Wrote");
         fclose(file);
+        delete[] buffer;
  
     }
 
