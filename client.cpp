@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
 
         a.splitCommand = splitString(a.command);
         const string &mainCommand = a.splitCommand[0];
+        const string secondArg = a.splitCommand[1];
         /* write in the socket */
         n = write(sockfd, (void *) &a, sizeof(MESSAGE));
         if (n < 0)
@@ -78,9 +79,10 @@ int main(int argc, char *argv[]) {
             printf("File size: %ld\n", size);
 
             FILE *file;
-            char buffer[size];
+            char* buffer = new char[size + 1];
+            printf("Alocou ok");
             // TODO: colocar o argumento
-            file = fopen("received_file.txt", "wb+");
+            file = fopen(secondArg.c_str(), "wb+");
             if (file == NULL) {
                 printf("Error opening file");
             }
@@ -90,6 +92,7 @@ int main(int argc, char *argv[]) {
 
             n = read(sockfd, (void*) buffer, size);
             fwrite(buffer, size, 1, file);
+            delete[] buffer;
             // Close the file and socket
             fclose(file);
                 
