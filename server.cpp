@@ -59,9 +59,7 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            CommandHandler handler;
-            handler.socket = newsockfd;
-            handler.message = message;
+            CommandHandler handler = *new CommandHandler(newsockfd, message);
             handler.handleInput();
             /* write in the socket */
         }
@@ -72,7 +70,7 @@ void *client_thread(void *arg) {
 
 int create_connection() {
     int sockfd, bindReturn;
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr{};
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {

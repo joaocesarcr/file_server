@@ -11,13 +11,14 @@
 #include <vector>
 
 
-
 #include "./h/message_struct.hpp"
 
 #define PORT 4000
 
 using namespace std;
+
 int createConnection(char *argv[]);
+
 std::vector<std::string> splitString(const std::string &str);
 // ./myClient <username> <server_ip_address> <port>
 
@@ -38,64 +39,63 @@ int main(int argc, char *argv[]) {
     int sockfd = createConnection(argv);
     char buffer[MAX_MESSAGE_LENGTH];
 
-    MESSAGE a;
-    strncpy(a.client, argv[1], MAX_MESSAGE_LENGTH);
+    MESSAGE message;
+    strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
         ssize_t n;
-        //strncpy(a.command, "Sending packet", MAX_MESSAGE_LENGTH);
-        //printf("teste: %s\n", a.data);
+        //strncpy(message.command, "Sending packet", MAX_MESSAGE_LENGTH);
+        //printf("teste: %s\n", message.data);
         std::string temp;
-        printf("%s: ", a.client);
+        printf("%s: ", message.client);
         getline(std::cin, temp);
-        strcpy(a.command, temp.c_str());
+        strcpy(message.command, temp.c_str());
 
-        a.splitCommand = splitString(a.command);
-        const string &mainCommand = a.splitCommand[0];
-        const string secondArg = a.splitCommand[1];
+        vector<string> splitCommand = splitString(message.command);
+        const string &mainCommand = splitCommand[0];
+        string secondArg;
+        if (splitCommand.size() > 1)
+            secondArg = splitCommand[1];
         /* write in the socket */
-        n = write(sockfd, (void *) &a, sizeof(MESSAGE));
+        n = write(sockfd, (void *) &message, sizeof(MESSAGE));
         if (n < 0)
             printf("ERROR writing to socket\n");
-        if (!strcmp(a.command, "exit")) {
-            close(sockfd);
-            break;
-        }
-        if (!strcmp(a.command, "ls")) {
+        if (mainCommand == "exit") {
+            running = 0;
+        } else if (mainCommand == "ls") {
             char directoryNames[50][256];
-            n = read(sockfd, directoryNames, 12800);
-            for (int i = 0; i < 50; i++) {
-                  if (!strcmp(directoryNames[i],""))
-                      break;
-                  else 
-                    printf("%s", directoryNames[i]);
+            do {
+                n = read(sockfd, directoryNames, 12800);
+            } while (n < sizeof(message));
+            for (auto &directoryName: directoryNames) {
+                if (!strcmp(directoryName, ""))
+                    break;
+                printf("%s", directoryName);
             }
-        }
-        
-        if (mainCommand == "download") {
+        } else if (mainCommand == "download") {
             long size = 0;
             printf("Getting file size...\n");
-            n = read(sockfd, (void*) &size, sizeof(long));
+            n = read(sockfd, (void *) &size, sizeof(long));
             printf("File size: %ld\n", size);
 
             FILE *file;
-            char* buffer = new char[size + 1];
+            char *buffer = new char[size + 1];
             printf("Alocou ok");
             // TODO: colocar o argumento
             file = fopen(secondArg.c_str(), "wb+");
-            if (file == NULL) {
+            if (!file) {
                 printf("Error opening file");
             }
 
             // Receive data from the server and write to the file
             ssize_t bytesRead;
 
-            n = read(sockfd, (void*) buffer, size);
+            n = read(sockfd, (void *) buffer, size);
             fwrite(buffer, size, 1, file);
             delete[] buffer;
             // Close the file and socket
             fclose(file);
-                
+
         }
         /*
          * TODO: vai precisar de uma classe pra saber lidar com a resposta
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 
 int createConnection(char *argv[]) {
     int sockfd;
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr{};
     struct hostent *server;
 
     server = gethostbyname(argv[2]);
@@ -150,18 +150,19 @@ int createConnection(char *argv[]) {
     return sockfd;
 
 }
+
 std::vector<std::string> splitString(const std::string &str) {
-        string s;
+    string s;
 
-        stringstream ss(str);
+    stringstream ss(str);
 
-        vector<string> v;
-        while (getline(ss, s, ' ')) {
-            if (s != " ") {
-                v.push_back(s);
-            }
+    vector<string> v;
+    while (getline(ss, s, ' ')) {
+        if (s != " ") {
+            v.push_back(s);
         }
-
-        return v;
     }
+
+    return v;
+}
 

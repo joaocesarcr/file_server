@@ -10,7 +10,6 @@
 typedef struct MESSAGE_t {
     char command[MAX_MESSAGE_LENGTH + 1]; // Including space for null terminator
     char client[MAX_MESSAGE_LENGTH + 1]; // Including space for null terminator
-    std::vector<std::string> splitCommand;
 } MESSAGE;
 
 
