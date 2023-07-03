@@ -2,6 +2,7 @@
 #include <cstring>
 #include <dirent.h>
 #include <sstream>
+#include <utility>
 #include <vector>
 #include <string>
 
@@ -12,12 +13,17 @@ using namespace std;
 
 class CommandHandler {
 public:
-    int socket;
+    int socket{};
     MESSAGE message;
+    vector<string> splitCommand{};
+
+    CommandHandler(int socket, MESSAGE message) : socket(socket), message(message) {
+        splitCommand = CommandHandler::splitString(message.command);
+    }
 
     void handleUpload() {
         printf("Upload command selected.\n");
-        
+
     }
 
     void handleDownload() {
@@ -26,40 +32,40 @@ public:
         strcat(location, message.client);
         int n;
         strcat(location, "/");
-        strcat(location, message.splitCommand[1].c_str());
+        strcat(location, splitCommand[1].c_str());
 
         printf("Location: %s\n", location);
 
         // Send file size 
-        struct stat st;
+        struct stat st{};
         stat(location, &st);
         long size = st.st_size;
         // TODO: trocar pra nro de pacotes
         printf("size: %ld\n", size);
-        n = write(socket, (void*) &size, sizeof(long));
+        n = write(socket, (void *) &size, sizeof(long));
 
         /* TODO: usar nro de pacotes 
         int count = 0;
         do {
           count++;
         } while (count < 5);
-        */ 
+        */
 
         FILE *file;
-        char* buffer = new char[size + 1];
+        char *buffer = new char[size + 1];
         file = fopen(location, "rb");
-        if (file == NULL) {
-          printf("Error opening file");
+        if (!file) {
+            printf("Error opening file");
         }
 
         // Read file contents and send to client
         size_t bytesRead;
         bytesRead = fread(buffer, size, 1, file);
         //printf("File read: %s",buffer);
-        write(socket, (void*) buffer, size);
+        write(socket, (void *) buffer, size);
         fclose(file);
         delete[] buffer;
- 
+
     }
 
     void handleDelete() {
@@ -78,22 +84,22 @@ public:
 
         if (d) {
             while ((dir = readdir(d))) {
-                if (dir->d_name == message.splitCommand[1]) {
+                if (dir->d_name == splitCommand[1]) {
                     strcat(location, "/");
                     strcat(location, dir->d_name);
                     remove(location);
 
-                    printf("Successfully deleted file: %s\n\n", message.splitCommand[1].c_str());
-                    snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", message.splitCommand[1].c_str());
+                    printf("Successfully deleted file: %s\n\n", splitCommand[1].c_str());
+                    snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", splitCommand[1].c_str());
                     n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
                     closedir(d);
                     return;
                 }
             }
-            printf("Fail to delete file [%s]: not found\n\n", message.splitCommand[1].c_str());
+            printf("Fail to delete file [%s]: not found\n\n", splitCommand[1].c_str());
             closedir(d);
         }
-        snprintf(returnMessage, sizeof(returnMessage), "Failed to delete %s \n", message.splitCommand[1].c_str());
+        snprintf(returnMessage, sizeof(returnMessage), "Failed to delete %s \n", splitCommand[1].c_str());
         n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
     }
 
@@ -113,7 +119,7 @@ public:
 
         if (d) {
             while ((dir = readdir(d))) {
-                if (strcmp(dir->d_name, ".") && (strcmp(dir->d_name, ".."))) {
+                if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
                     strcpy(directoryNames[count], strcat(dir->d_name, "\n"));
                     count++;
                 }
@@ -138,8 +144,8 @@ public:
         // Remove \n
         message.command[strcspn(message.command, "\n")] = 0;
 
-        message.splitCommand = splitString(message.command);
-        const string &mainCommand = message.splitCommand[0];
+        splitCommand = splitString(message.command);
+        const string &mainCommand = splitCommand[0];
 
         if (mainCommand == "upload") {
             handleUpload();
@@ -163,7 +169,7 @@ public:
     }
 
 private:
-    std::vector<std::string> splitString(const std::string &str) {
+    static std::vector<std::string> splitString(const std::string &str) {
         string s;
 
         stringstream ss(str);
