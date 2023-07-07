@@ -80,22 +80,57 @@ int main(int argc, char *argv[]) {
 
             FILE *file;
             char *buffer = new char[size + 1];
-            printf("Alocou ok");
             // TODO: colocar o argumento
             file = fopen(secondArg.c_str(), "wb+");
             if (!file) {
                 printf("Error opening file");
             }
 
-            // Receive data from the server and write to the file
             ssize_t bytesRead;
 
             n = read(sockfd, (void *) buffer, size);
             fwrite(buffer, size, 1, file);
             delete[] buffer;
-            // Close the file and socket
             fclose(file);
 
+        } else if (mainCommand == "upload") {
+            FILE *file = fopen(secondArg.c_str(), "rb");
+            if (file) {
+                std::string fileName = secondArg.substr(secondArg.find_last_of("/") + 1);
+                std::string serverFilePath = "server_files/" + std::string(message.client) + "/" + fileName;
+
+                fseek(file, 0, SEEK_END);
+                ssize_t fileSize = ftell(file);
+                fseek(file, 0, SEEK_SET);
+
+                n = write(sockfd, (void *) &fileSize, sizeof(ssize_t));
+                if (n <= 0) {
+                    printf("Error sending file size\n");
+                    fclose(file);
+                    continue;
+                }
+
+                const int BUFFER_SIZE = 1024;
+                char buffer[BUFFER_SIZE];
+                ssize_t bytesRead;
+                ssize_t totalBytesSent = 0;
+
+                while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+                    n = write(sockfd, buffer, bytesRead);
+                    if (n <= 0) {
+                        printf("Error sending file data\n");
+                        fclose(file);
+                        break;
+                    }
+
+                    totalBytesSent += bytesRead;
+                }
+
+                printf("Total bytes sent: %zd\n", totalBytesSent);
+                fclose(file);
+            } else {
+                printf("Error opening file\n");
+            }
         }
         /*
          * TODO: vai precisar de uma classe pra saber lidar com a resposta
