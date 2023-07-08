@@ -23,7 +23,7 @@ private:
         strcat(location, message.client);
         int n;
         string filePath = splitCommand[1];
-        string fileName = filePath.substr(filePath.find_last_of("/") + 1);
+        string fileName = filePath.substr(filePath.find_last_of('/') + 1);
         strcat(location, "/");
         strcat(location, fileName.c_str());
 
@@ -45,8 +45,7 @@ private:
 
         const int BUFFER_SIZE = 1024;
         char buffer[BUFFER_SIZE];
-        ssize_t bytesRead;
-        ssize_t totalBytesReceived = 0;
+        ssize_t bytesRead, totalBytesReceived = 0;
 
         while (totalBytesReceived < size) {
             bytesRead = read(socket, buffer, BUFFER_SIZE);
@@ -99,21 +98,18 @@ private:
         long totalBytesSent = 0;
 
         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-
             n = write(socket, buffer, bytesRead);
             if (n <= 0) {
                 printf("Error sending file data\n");
                 fclose(file);
                 return;
             }
-
             totalBytesSent += bytesRead;
         }
 
         printf("Total bytes sent: %ld\n", totalBytesSent);
         fclose(file);
-        return;
-    }
+   }
 
     void handleDelete() {
         char returnMessage[MAX_MESSAGE_LENGTH + 1];
@@ -193,7 +189,6 @@ public:
     }
 
     int handleInput() {
-        // Remove \n
         message.content[strcspn(message.content, "\n")] = 0;
 
         splitCommand = splitString(message.content);
