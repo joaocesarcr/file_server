@@ -19,14 +19,16 @@ using namespace std;
 
 int createConnection(char *argv[]);
 
+bool checkConnectionAcceptance(int socket);
+
 std::vector<std::string> splitString(const std::string &str);
 // ./myClient <username> <server_ip_address> <port>
 
 int main(int argc, char *argv[]) {
     /*
-      if (strcmp(argv[1], "command\n")) {
+      if (strcmp(argv[1], "content\n")) {
         printf("Testando inputs\n");
-        printf("Enter a command: ");
+        printf("Enter a content: ");
         scanf("%s", input);
 
       }
@@ -44,14 +46,14 @@ int main(int argc, char *argv[]) {
     int running = 1;
     do {
         ssize_t n;
-        //strncpy(message.command, "Sending packet", MAX_MESSAGE_LENGTH);
+        //strncpy(message.content, "Sending packet", MAX_MESSAGE_LENGTH);
         //printf("teste: %s\n", message.data);
         std::string temp;
         printf("%s: ", message.client);
         getline(std::cin, temp);
-        strcpy(message.command, temp.c_str());
+        strcpy(message.content, temp.c_str());
 
-        vector<string> splitCommand = splitString(message.command);
+        vector<string> splitCommand = splitString(message.content);
         const string &mainCommand = splitCommand[0];
         string secondArg;
         if (splitCommand.size() > 1)
@@ -181,6 +183,8 @@ int createConnection(char *argv[]) {
         exit(-1);
     }
 
+    if (!checkConnectionAcceptance(sockfd)) exit(-1);
+
     printf("Connection established successfully.\n\n");
     return sockfd;
 
@@ -199,5 +203,19 @@ std::vector<std::string> splitString(const std::string &str) {
     }
 
     return v;
+}
+
+bool checkConnectionAcceptance(int socket) {
+    size_t n;
+    MESSAGE message;
+    do {
+        n = read(socket, (void *) &message, sizeof(message));
+    } while (n < sizeof(message));
+
+    if (strcmp(message.content, "accepted\0") == 0) return true;
+
+    printf("ERROR: Connections quota reached\n");
+
+    return false;
 }
 

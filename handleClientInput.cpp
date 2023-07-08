@@ -18,11 +18,11 @@ public:
     vector<string> splitCommand{};
 
     CommandHandler(int socket, MESSAGE message) : socket(socket), message(message) {
-        splitCommand = CommandHandler::splitString(message.command);
+        splitCommand = CommandHandler::splitString(message.content);
     }
 
     void handleUpload() {
-        printf("Upload command selected.\n");
+        printf("Upload content selected.\n");
         char location[256] = "server_files/";
         strcat(location, message.client);
         int n;
@@ -69,7 +69,7 @@ public:
     }
 
     void handleDownload() {
-        printf("Download command selected.\n");
+        printf("Download content selected.\n");
         char location[256] = "server_files/"; 
         strcat(location, message.client);
         int n;
@@ -122,7 +122,7 @@ public:
     void handleDelete() {
         char returnMessage[MAX_MESSAGE_LENGTH + 1];
         int n = 0;
-        printf("Delete command selected.\n");
+        printf("Delete content selected.\n");
         printf("Client name: %s\n", message.client);
 
         char location[256] = "server_files/"; // Declare 'location' as an array of characters
@@ -155,7 +155,7 @@ public:
     }
 
     void handleLs() {
-        printf("LS command selected!\n");
+        printf("LS content selected!\n");
         printf("Client name: %s\n", message.client);
 
         char location[256] = "server_files/"; // Declare 'location' as an array of characters
@@ -182,20 +182,20 @@ public:
     }
 
     void handleLc() {
-        printf("LC command selected.\n");
+        printf("LC content selected.\n");
         // Your lc code here
     }
 
     void handleGsd() {
-        printf("GSD command selected.\n");
+        printf("GSD content selected.\n");
         // Your gsd code here
     }
 
     int handleInput() {
         // Remove \n
-        message.command[strcspn(message.command, "\n")] = 0;
+        message.content[strcspn(message.content, "\n")] = 0;
 
-        splitCommand = splitString(message.command);
+        splitCommand = splitString(message.content);
         const string &mainCommand = splitCommand[0];
 
         if (mainCommand == "upload") {
@@ -213,7 +213,7 @@ public:
         } else if (mainCommand == "exit") {
             printf("Exiting the program.\n");
         } else {
-            printf("Invalid command.\n\n");
+            printf("Invalid content.\n\n");
         }
 
         return 0;
