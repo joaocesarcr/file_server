@@ -10,4 +10,5 @@ add_executable(file_server
         client.cpp
         commands.cpp
         handleClientInput.cpp
+        handleClientOutput.cpp
         server.cpp)

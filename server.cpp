@@ -83,7 +83,7 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            CommandHandler handler = *new CommandHandler(newsockfd, message);
+            ServerProcessor handler = *new ServerProcessor(newsockfd, message);
             handler.handleInput();
         }
     }
@@ -136,12 +136,12 @@ bool checkClientAcceptance(clientArgs *args) {
     size_t clientConnectionsAmount = (*args).clients.count(clientName);
 
     if (clientConnectionsAmount) {
-        if (clientConnectionsAmount > MAX_CONNECTIONS_PER_CLIENT) {
+        if (clientConnectionsAmount == MAX_CONNECTIONS_PER_CLIENT) {
             printf("ERROR: %s exceeded connections quota\n", clientName.c_str());
             strcpy(message.content, "denied\0");
             accepted = false;
         } else {
-            (*args).clients[clientName] += 1;
+            (*args).clients[clientName]++;
         }
     } else {
         (*args).clients.insert(make_pair(clientName, 1));

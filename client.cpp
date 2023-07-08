@@ -46,107 +46,20 @@ int main(int argc, char *argv[]) {
     int running = 1;
     do {
         ssize_t n;
-        //strncpy(message.content, "Sending packet", MAX_MESSAGE_LENGTH);
-        //printf("teste: %s\n", message.data);
         std::string temp;
         printf("%s: ", message.client);
         getline(std::cin, temp);
         strcpy(message.content, temp.c_str());
 
-        vector<string> splitCommand = splitString(message.content);
-        const string &mainCommand = splitCommand[0];
-        string secondArg;
-        if (splitCommand.size() > 1)
-            secondArg = splitCommand[1];
-        /* write in the socket */
+        if (!strcmp(message.content, "exit")) {
+            printf("Ending Connection\n");
+            running = 0;
+        }
+
         n = write(sockfd, (void *) &message, sizeof(MESSAGE));
         if (n < 0)
             printf("ERROR writing to socket\n");
-        if (mainCommand == "exit") {
-            running = 0;
-        } else if (mainCommand == "ls") {
-            char directoryNames[50][256];
-            do {
-                n = read(sockfd, directoryNames, 12800);
-            } while (n < sizeof(message));
-            for (auto &directoryName: directoryNames) {
-                if (!strcmp(directoryName, ""))
-                    break;
-                printf("%s", directoryName);
-            }
-        } else if (mainCommand == "download") {
-            long size = 0;
-            printf("Getting file size...\n");
-            n = read(sockfd, (void *) &size, sizeof(long));
-            printf("File size: %ld\n", size);
 
-            FILE *file;
-            char *buffer = new char[size + 1];
-            // TODO: colocar o argumento
-            file = fopen(secondArg.c_str(), "wb+");
-            if (!file) {
-                printf("Error opening file");
-            }
-
-            ssize_t bytesRead;
-
-            n = read(sockfd, (void *) buffer, size);
-            fwrite(buffer, size, 1, file);
-            delete[] buffer;
-            fclose(file);
-
-        } else if (mainCommand == "upload") {
-            FILE *file = fopen(secondArg.c_str(), "rb");
-            if (file) {
-                std::string fileName = secondArg.substr(secondArg.find_last_of("/") + 1);
-                std::string serverFilePath = "server_files/" + std::string(message.client) + "/" + fileName;
-
-                fseek(file, 0, SEEK_END);
-                ssize_t fileSize = ftell(file);
-                fseek(file, 0, SEEK_SET);
-
-                n = write(sockfd, (void *) &fileSize, sizeof(ssize_t));
-                if (n <= 0) {
-                    printf("Error sending file size\n");
-                    fclose(file);
-                    continue;
-                }
-
-                const int BUFFER_SIZE = 1024;
-                char buffer[BUFFER_SIZE];
-                ssize_t bytesRead;
-                ssize_t totalBytesSent = 0;
-
-                while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-                    n = write(sockfd, buffer, bytesRead);
-                    if (n <= 0) {
-                        printf("Error sending file data\n");
-                        fclose(file);
-                        break;
-                    }
-
-                    totalBytesSent += bytesRead;
-                }
-
-                printf("Total bytes sent: %zd\n", totalBytesSent);
-                fclose(file);
-            } else {
-                printf("Error opening file\n");
-            }
-        }
-        /*
-         * TODO: vai precisar de uma classe pra saber lidar com a resposta
-         * de cada comando possível do cliente (a resposta nem sempre é do
-         * mesmo tamanho/tipo)
-        else { 
-          bzero(buffer, 256);
-
-          do {
-              n = read(sockfd, buffer, MAX_MESSAGE_LENGTH);
-          } while (n < MAX_MESSAGE_LENGTH);
-          printf("Answer: %s\n\n", buffer);
-        }
-        */
 
     } while (running);
     printf("Ending connection\n");

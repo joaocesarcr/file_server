@@ -11,23 +11,19 @@
 
 using namespace std;
 
-class CommandHandler {
-public:
+class ServerProcessor {
+private:
     int socket{};
     MESSAGE message;
     vector<string> splitCommand{};
-
-    CommandHandler(int socket, MESSAGE message) : socket(socket), message(message) {
-        splitCommand = CommandHandler::splitString(message.content);
-    }
 
     void handleUpload() {
         printf("Upload content selected.\n");
         char location[256] = "server_files/";
         strcat(location, message.client);
         int n;
-        std::string filePath = splitCommand[1];
-        std::string fileName = filePath.substr(filePath.find_last_of("/") + 1);
+        string filePath = splitCommand[1];
+        string fileName = filePath.substr(filePath.find_last_of("/") + 1);
         strcat(location, "/");
         strcat(location, fileName.c_str());
 
@@ -70,7 +66,7 @@ public:
 
     void handleDownload() {
         printf("Download content selected.\n");
-        char location[256] = "server_files/"; 
+        char location[256] = "server_files/";
         strcat(location, message.client);
         int n;
         strcat(location, "/");
@@ -114,9 +110,9 @@ public:
             totalBytesSent += bytesRead;
         }
 
-            printf("Total bytes sent: %ld\n", totalBytesSent);
-            fclose(file);
-            return;
+        printf("Total bytes sent: %ld\n", totalBytesSent);
+        fclose(file);
+        return;
     }
 
     void handleDelete() {
@@ -135,17 +131,17 @@ public:
 
         if (d) {
             while ((dir = readdir(d))) {
-                if (dir->d_name == splitCommand[1]) {
-                    strcat(location, "/");
-                    strcat(location, dir->d_name);
-                    remove(location);
+                if (dir->d_name != splitCommand[1]) continue;
 
-                    printf("Successfully deleted file: %s\n\n", splitCommand[1].c_str());
-                    snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", splitCommand[1].c_str());
-                    n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
-                    closedir(d);
-                    return;
-                }
+                strcat(location, "/");
+                strcat(location, dir->d_name);
+                remove(location);
+
+                printf("Successfully deleted file: %s\n\n", splitCommand[1].c_str());
+                snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", splitCommand[1].c_str());
+                n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
+                closedir(d);
+                return;
             }
             printf("Fail to delete file [%s]: not found\n\n", splitCommand[1].c_str());
             closedir(d);
@@ -191,6 +187,11 @@ public:
         // Your gsd code here
     }
 
+public:
+    ServerProcessor(int socket, MESSAGE message) : socket(socket), message(message) {
+        splitCommand = ServerProcessor::splitString(message.content);
+    }
+
     int handleInput() {
         // Remove \n
         message.content[strcspn(message.content, "\n")] = 0;
@@ -220,7 +221,7 @@ public:
     }
 
 private:
-    static std::vector<std::string> splitString(const std::string &str) {
+    static vector<string> splitString(const string &str) {
         string s;
 
         stringstream ss(str);
