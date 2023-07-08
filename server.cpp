@@ -15,7 +15,6 @@
 typedef struct clientArgs {
     map<string, int> clients;
     int socket;
-    size_t activeConnectionsAmount;
 } clientArgs;
 
 void *client_thread(void *arg);
@@ -25,7 +24,6 @@ int create_connection();
 bool checkClientAcceptance(clientArgs *args);
 
 int main(int argc, char *argv[]) {
-    size_t activeConnectionsAmount = 0;
     struct sockaddr_in cli_addr{};
     map<string, int> clients{};
     int sockfd, newsockfd;
@@ -35,26 +33,20 @@ int main(int argc, char *argv[]) {
     sockfd = create_connection();
 
     // tells the socket that new connections shall be accepted
-    listen(sockfd, 5);
+    listen(sockfd, MAX_TOTAL_CONNECTIONS);
     printf("Waiting accept\n");
 
     // get a new socket with a new incoming connection
 
     while (true) {
-        if (activeConnectionsAmount == MAX_TOTAL_CONNECTIONS) {
-            printf("Limits of active connections reached.\n");
-            continue;
-        }
-
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd == -1)
             printf("ERROR on accept\n");
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1;
-            clientArgs args = {clients, newsockfd, activeConnectionsAmount};
+            clientArgs args = {clients, newsockfd};
             pthread_create(&th1, nullptr, client_thread, &args);
-            activeConnectionsAmount++;
         }
     }
 
@@ -89,7 +81,6 @@ void *client_thread(void *arg) {
     }
 
     close(newsockfd);
-    (*args).activeConnectionsAmount--;
 
     printf("Connection ended\n");
 
@@ -111,8 +102,6 @@ int create_connection() {
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(serv_addr.sin_zero), 8);
 
-    //  assigns the address specified by addr to the socket referred to
-    // by the file descriptor sockfd
     bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (bindReturn < 0) {
         printf("ERROR on binding\n");

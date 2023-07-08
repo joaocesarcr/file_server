@@ -7,9 +7,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <sstream>
-#include <vector>
-
 
 #include "./h/message_struct.hpp"
 
@@ -21,34 +18,22 @@ int createConnection(char *argv[]);
 
 bool checkConnectionAcceptance(int socket);
 
-std::vector<std::string> splitString(const std::string &str);
-// ./myClient <username> <server_ip_address> <port>
-
 int main(int argc, char *argv[]) {
-    /*
-      if (strcmp(argv[1], "content\n")) {
-        printf("Testando inputs\n");
-        printf("Enter a content: ");
-        scanf("%s", input);
-
-      }
-    */
     if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
         exit(-1);
     }
 
     int sockfd = createConnection(argv);
-    char buffer[MAX_MESSAGE_LENGTH];
 
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
         ssize_t n;
-        std::string temp;
+        string temp;
         printf("%s: ", message.client);
-        getline(std::cin, temp);
+        getline(cin, temp);
         strcpy(message.content, temp.c_str());
 
         if (!strcmp(message.content, "exit")) {
@@ -59,7 +44,6 @@ int main(int argc, char *argv[]) {
         n = write(sockfd, (void *) &message, sizeof(MESSAGE));
         if (n < 0)
             printf("ERROR writing to socket\n");
-
 
     } while (running);
     printf("Ending connection\n");
@@ -101,21 +85,6 @@ int createConnection(char *argv[]) {
     printf("Connection established successfully.\n\n");
     return sockfd;
 
-}
-
-std::vector<std::string> splitString(const std::string &str) {
-    string s;
-
-    stringstream ss(str);
-
-    vector<string> v;
-    while (getline(ss, s, ' ')) {
-        if (s != " ") {
-            v.push_back(s);
-        }
-    }
-
-    return v;
 }
 
 bool checkConnectionAcceptance(int socket) {
