@@ -23,12 +23,54 @@ public:
 
     void handleUpload() {
         printf("Upload command selected.\n");
+        char location[256] = "server_files/";
+        strcat(location, message.client);
+        int n;
+        std::string filePath = splitCommand[1];
+        std::string fileName = filePath.substr(filePath.find_last_of("/") + 1);
+        strcat(location, "/");
+        strcat(location, fileName.c_str());
 
+        printf("Location: %s\n", location);
+
+        FILE *file = fopen(location, "wb");
+        if (!file) {
+            printf("Error creating file\n");
+            return;
+        }
+
+        ssize_t size;
+        n = read(socket, (void *) &size, sizeof(ssize_t));
+        if (n <= 0) {
+            printf("Error receiving file size\n");
+            fclose(file);
+            return;
+        }
+
+        const int BUFFER_SIZE = 1024;
+        char buffer[BUFFER_SIZE];
+        ssize_t bytesRead;
+        ssize_t totalBytesReceived = 0;
+
+        while (totalBytesReceived < size) {
+            bytesRead = read(socket, buffer, BUFFER_SIZE);
+            if (bytesRead <= 0) {
+                printf("Error receiving file data\n");
+                fclose(file);
+                return;
+            }
+
+            fwrite(buffer, bytesRead, 1, file);
+            totalBytesReceived += bytesRead;
+        }
+
+        printf("Total bytes received: %zd\n", totalBytesReceived);
+        fclose(file);
     }
 
     void handleDownload() {
         printf("Download command selected.\n");
-        char location[256] = "server_files/"; // Declare 'location' as an array of characters
+        char location[256] = "server_files/"; 
         strcat(location, message.client);
         int n;
         strcat(location, "/");
@@ -36,36 +78,45 @@ public:
 
         printf("Location: %s\n", location);
 
-        // Send file size 
-        struct stat st{};
-        stat(location, &st);
-        long size = st.st_size;
-        // TODO: trocar pra nro de pacotes
-        printf("size: %ld\n", size);
-        n = write(socket, (void *) &size, sizeof(long));
-
-        /* TODO: usar nro de pacotes 
-        int count = 0;
-        do {
-          count++;
-        } while (count < 5);
-        */
-
-        FILE *file;
-        char *buffer = new char[size + 1];
-        file = fopen(location, "rb");
+        FILE *file = fopen(location, "rb");
         if (!file) {
-            printf("Error opening file");
+            printf("Error opening file\n");
+            return;
         }
 
-        // Read file contents and send to client
-        size_t bytesRead;
-        bytesRead = fread(buffer, size, 1, file);
-        //printf("File read: %s",buffer);
-        write(socket, (void *) buffer, size);
-        fclose(file);
-        delete[] buffer;
+        fseek(file, 0, SEEK_END);
+        long size = ftell(file);
+        fseek(file, 0, SEEK_SET);
 
+        printf("Size: %ld\n", size);
+
+        n = write(socket, (void *) &size, sizeof(long));
+        if (n <= 0) {
+            printf("Error sending file size\n");
+            fclose(file);
+            return;
+        }
+
+        const int BUFFER_SIZE = 1024;
+        char buffer[BUFFER_SIZE];
+        size_t bytesRead;
+        long totalBytesSent = 0;
+
+        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+
+            n = write(socket, buffer, bytesRead);
+            if (n <= 0) {
+                printf("Error sending file data\n");
+                fclose(file);
+                return;
+            }
+
+            totalBytesSent += bytesRead;
+        }
+
+            printf("Total bytes sent: %ld\n", totalBytesSent);
+            fclose(file);
+            return;
     }
 
     void handleDelete() {
