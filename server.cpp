@@ -66,6 +66,7 @@ void *client_thread(void *arg) {
     }
     close(newsockfd);
     printf("Connection ended\n");
+    return 0;
 }
 
 int create_connection() {
