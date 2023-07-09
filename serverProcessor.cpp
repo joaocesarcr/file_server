@@ -18,7 +18,7 @@ private:
     vector<string> splitCommand{};
 
     void handleUpload() {
-        printf("Upload content selected.\n");
+        printf("Upload command selected.\n");
         char location[256] = "server_files/";
         strcat(location, message.client);
         int n;
@@ -64,7 +64,7 @@ private:
     }
 
     void handleDownload() {
-        printf("Download content selected.\n");
+        printf("Download command selected.\n");
         char location[256] = "server_files/";
         strcat(location, message.client);
         int n;
@@ -114,7 +114,7 @@ private:
     void handleDelete() {
         char returnMessage[MAX_MESSAGE_LENGTH + 1];
         int n = 0;
-        printf("Delete content selected.\n");
+        printf("Delete command selected.\n");
         printf("Client name: %s\n", message.client);
 
         char location[256] = "server_files/"; // Declare 'location' as an array of characters
@@ -147,7 +147,7 @@ private:
     }
 
     void handleLs() {
-        printf("LS content selected!\n");
+        printf("LS command selected!\n");
         printf("Client name: %s\n", message.client);
 
         char location[256] = "server_files/"; // Declare 'location' as an array of characters
@@ -174,12 +174,12 @@ private:
     }
 
     void handleLc() {
-        printf("LC content selected.\n");
+        printf("LC command selected.\n");
         // Your lc code here
     }
 
     void handleGsd() {
-        printf("GSD content selected.\n");
+        printf("GSD command selected.\n");
         // Your gsd code here
     }
 
