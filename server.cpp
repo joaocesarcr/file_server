@@ -13,7 +13,7 @@
 #define MAX_TOTAL_CONNECTIONS 5
 
 typedef struct clientArgs {
-    map<string, int> clients;
+    map<string, int> *clients;
     int socket;
 } clientArgs;
 
@@ -21,7 +21,7 @@ void *client_thread(void *arg);
 
 int create_connection();
 
-bool checkClientAcceptance(clientArgs *args);
+bool checkClientAcceptance(clientArgs args);
 
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
@@ -45,7 +45,9 @@ int main(int argc, char *argv[]) {
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1;
-            clientArgs args = {clients, newsockfd};
+            clientArgs args = {&clients, newsockfd};
+            if (!checkClientAcceptance(args)) continue;
+
             pthread_create(&th1, nullptr, client_thread, &args);
         }
     }
@@ -59,8 +61,6 @@ void *client_thread(void *arg) {
     int newsockfd = (*args).socket;
     int running = 1;
     ssize_t n;
-
-    if (!checkClientAcceptance(args)) return nullptr;
 
     while (running) {
         do {
@@ -111,8 +111,8 @@ int create_connection() {
 
 }
 
-bool checkClientAcceptance(clientArgs *args) {
-    int socket = (*args).socket;
+bool checkClientAcceptance(clientArgs args) {
+    int socket = args.socket;
     bool accepted = true;
     MESSAGE message;
     ssize_t n;
@@ -123,18 +123,20 @@ bool checkClientAcceptance(clientArgs *args) {
 
     string clientName = message.client;
     strcpy(message.content, "accepted\0");
-    size_t clientConnectionsAmount = (*args).clients.count(clientName);
+    size_t clientConnectionsAmount = args.clients->count(clientName);
 
     if (clientConnectionsAmount) {
-        if (clientConnectionsAmount == MAX_CONNECTIONS_PER_CLIENT) {
+        map<string, int> *clients = args.clients;
+        if ((*clients)[clientName] == MAX_CONNECTIONS_PER_CLIENT) {
             printf("ERROR: %s exceeded connections quota\n", clientName.c_str());
             strcpy(message.content, "denied\0");
             accepted = false;
         } else {
-            (*args).clients[clientName]++;
+            map<string, int> *clients = args.clients;
+            (*clients)[clientName]++;
         }
     } else {
-        (*args).clients.insert(make_pair(clientName, 1));
+        args.clients->insert(make_pair(clientName, 1));
     }
 
     n = write(socket, (void *) &message, sizeof(MESSAGE));
