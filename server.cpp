@@ -5,12 +5,23 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <map>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/inotify.h>
+#include <limits.h> 
+#include <filesystem>
+#include <iostream>
 
 #include "./serverProcessor.cpp"
 
 #define PORT 4000
 #define MAX_CONNECTIONS_PER_CLIENT 2
 #define MAX_TOTAL_CONNECTIONS 5
+ 
+#define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
+#define LEN_NAME 16 /*Assuming that the length of the filename won't exceed 16 bytes*/
+#define EVENT_SIZE  ( sizeof (struct inotify_event) ) /*size of one event*/
+#define BUF_LEN     ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
 
 void *client_thread(void *arg);
 
@@ -22,9 +33,15 @@ void removeClientConnectionsCount(int sockfd);
 
 void createSyncDir(const string& clientName);
 
+void *inotify_thread(void *arg);
+
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+vector<int> socketList;
+pthread_mutex_t mutex_socket_list = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_socket_list = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
@@ -47,12 +64,13 @@ int main(int argc, char *argv[]) {
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1;
+            
             if (!checkClientAcceptance(newsockfd)) continue;
 
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
+            socketList.push_back(newsockfd);
         }
     }
-
     return 0;
 }
 
@@ -150,6 +168,8 @@ bool checkClientAcceptance(int sockfd) {
 
     if (accepted) {
         createSyncDir(clientName);
+        pthread_t th2;
+        pthread_create(&th2, nullptr, inotify_thread, &clientName);
     }
 
     return accepted;
@@ -190,4 +210,69 @@ void createSyncDir(const string& clientName) {
     string dirPath = "sync_dir_" + clientName;
 
     mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
+
+void *inotify_thread(void *arg) {
+    int length, i = 0, wd;
+    int fd;
+    char buffer[BUF_LEN];
+    
+    /* Initialize Inotify*/
+    fd = inotify_init();
+    if ( fd < 0 ) {
+        perror( "Couldn't initialize inotify");
+    }
+    string clientName = *(string *) arg;
+
+    filesystem::path currentPath = std::filesystem::current_path();
+    string filename = "sync_dir_" + clientName;
+    filesystem::path absolutePath = currentPath / filename;
+    string absolutePathString = absolutePath.string();
+
+    cout << "Absolute path: " << absolutePathString << std::endl;
+
+    wd = inotify_add_watch(fd, absolutePathString.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE); 
+    
+    if (wd == -1)
+        {
+        cout << "Couldn't add watch to"<< absolutePathString << endl;
+        }
+    else
+        {
+        cout << "Watching::" << absolutePathString << endl;
+        }
+ 
+    while(1)
+    {
+        i = 0;
+        length = read( fd, buffer, BUF_LEN );  
+
+        if ( length < 0 ) {
+            perror( "read" );
+        }  
+
+        while ( i < length ) {
+            struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+            if ( event->len ) {
+                if ( event->mask & IN_CREATE) {
+                    cout << event->name << "was Created for " << absolutePathString;       
+                }
+                
+                if ( event->mask & IN_MODIFY) {
+                    printf( "%s was modified\n", event->name);       
+                }
+                
+                if ( event->mask & IN_DELETE) {
+                    printf( "%s was deleted\n", event->name);       
+                }  
+
+                i += EVENT_SIZE + event->len;
+            }
+        }
+    }
+    /* Clean up*/
+    inotify_rm_watch( fd, wd );
+    close( fd );
+
+    return nullptr;
 }
