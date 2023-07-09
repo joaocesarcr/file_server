@@ -35,13 +35,18 @@ void createSyncDir(const string& clientName);
 
 void *inotify_thread(void *arg);
 
+bool sendAll(int socket, const void* buffer, size_t length);
+
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 vector<int> socketList;
 pthread_mutex_t mutex_socket_list = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond_socket_list = PTHREAD_COND_INITIALIZER;
+
+struct ThreadArgs {
+    int socket;
+    string message;
+};
 
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
@@ -66,9 +71,10 @@ int main(int argc, char *argv[]) {
             pthread_t th1;
             
             if (!checkClientAcceptance(newsockfd)) continue;
-
+            pthread_mutex_lock(&mutex);  
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
             socketList.push_back(newsockfd);
+            pthread_mutex_unlock(&mutex);  
         }
     }
     return 0;
@@ -167,9 +173,12 @@ bool checkClientAcceptance(int sockfd) {
     }
 
     if (accepted) {
+        ThreadArgs* args = new ThreadArgs;
+        args->socket = sockfd;
+        args->message = clientName;
         createSyncDir(clientName);
         pthread_t th2;
-        pthread_create(&th2, nullptr, inotify_thread, &clientName);
+        pthread_create(&th2, nullptr, inotify_thread, args);
     }
 
     return accepted;
@@ -222,7 +231,9 @@ void *inotify_thread(void *arg) {
     if ( fd < 0 ) {
         perror( "Couldn't initialize inotify");
     }
-    string clientName = *(string *) arg;
+    ThreadArgs args = *(ThreadArgs *) arg;
+
+    string clientName = args.message;
 
     filesystem::path currentPath = std::filesystem::current_path();
     string filename = "sync_dir_" + clientName;
@@ -255,7 +266,59 @@ void *inotify_thread(void *arg) {
             struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
             if ( event->len ) {
                 if ( event->mask & IN_CREATE) {
-                    cout << event->name << "was Created for " << absolutePathString;       
+                    pthread_mutex_lock(&mutex);  
+                        for (int socket : socketList) {
+                            MESSAGE message;
+                            strcpy(message.client, clientName.c_str());
+                            strcpy(message.content, event->name);
+                            if (!sendAll(socket, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");  
+
+                            char location[256] = "sync_dir_";
+                            strcat(location, message.client);
+                            int n;
+                            strcat(location, "/");
+                            strcat(location, event->name);
+
+                            printf("Location: %s\n", location);
+
+                            FILE *file = fopen(location, "rb");
+                            if (!file) {
+                                fprintf(stderr, "Error opening file\n");
+                                return;
+                            }
+
+                            fseek(file, 0, SEEK_END);
+                            long size = ftell(file);
+                            fseek(file, 0, SEEK_SET);
+
+                            printf("Size: %ld\n", size);
+
+                            n = write(socket, (void *) &size, sizeof(long));
+                            if (n <= 0) {
+                                fprintf(stderr, "Error sending file size\n");
+                                fclose(file);
+                                return;
+                            }
+
+                            const int BUFFER_SIZE = 1024;
+                            char buffer[BUFFER_SIZE];
+                            size_t bytesRead;
+                            long totalBytesSent = 0;
+
+                            while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+                                n = write(socket, buffer, bytesRead);
+                                if (n <= 0) {
+                                    fprintf(stderr, "Error sending file data\n");
+                                    fclose(file);
+                                    return;
+                                }
+                                totalBytesSent += bytesRead;
+                            }
+
+                            printf("Total bytes sent: %ld\n", totalBytesSent);
+                            fclose(file);
+                        }     
+                    pthread_mutex_unlock(&mutex);
                 }
                 
                 if ( event->mask & IN_MODIFY) {
@@ -275,4 +338,21 @@ void *inotify_thread(void *arg) {
     close( fd );
 
     return nullptr;
+}
+
+bool sendAll(int socket, const void* buffer, size_t length) {
+    const char* data = static_cast<const char*>(buffer);
+    ssize_t totalSent = 0;
+
+    while (totalSent < length) {
+        ssize_t sent = write(socket, data + totalSent, length - totalSent);
+
+        if (sent == -1) {
+            return false;
+        }
+
+        totalSent += sent;
+    }
+
+    return true;
 }
