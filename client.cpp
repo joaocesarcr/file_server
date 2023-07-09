@@ -21,6 +21,8 @@ bool checkConnectionAcceptance(char clientName[], int socket);
 
 void createSyncDir(const string& clientName);
 
+bool sendAll(int socket, const void* buffer, size_t length);
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
@@ -40,9 +42,8 @@ int main(int argc, char *argv[]) {
         strcpy(message.content, temp.c_str());
 
         if (!strcmp(message.content, "exit")) {
-//            n = write(sockfd, (void *) &message, sizeof(MESSAGE));
-//            if (n < 0)
-//                fprintf(stderr, "ERROR writing to socket\n");
+            if (!sendAll(sockfd, &message, sizeof(MESSAGE)))
+                fprintf(stderr, "ERROR writing to socket\n");
 
             running = 0;
         }
@@ -128,3 +129,19 @@ void createSyncDir(const string& clientName) {
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
+bool sendAll(int socket, const void* buffer, size_t length) {
+    const char* data = static_cast<const char*>(buffer);
+    ssize_t totalSent = 0;
+
+    while (totalSent < length) {
+        ssize_t sent = write(socket, data + totalSent, length - totalSent);
+
+        if (sent == -1) {
+            return false;
+        }
+
+        totalSent += sent;
+    }
+
+    return true;
+}

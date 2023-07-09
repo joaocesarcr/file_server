@@ -12,24 +12,22 @@
 #define MAX_CONNECTIONS_PER_CLIENT 2
 #define MAX_TOTAL_CONNECTIONS 5
 
-typedef struct clientArgs {
-    map<string, int> *clients;
-    int socket;
-} clientArgs;
-
 void *client_thread(void *arg);
 
 int create_connection();
 
-bool checkClientAcceptance(clientArgs args);
+bool checkClientAcceptance(int sockfd);
 
-void removeClientConnectionsCount(clientArgs args);
+void removeClientConnectionsCount(int sockfd);
 
 void createSyncDir(const string& clientName);
 
+map<string, int> clientsActiveConnections{};
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
-    map<string, int> clients{};
     int sockfd, newsockfd;
     socklen_t clilen;
 
@@ -49,10 +47,9 @@ int main(int argc, char *argv[]) {
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1;
-            clientArgs args = {&clients, newsockfd};
-            if (!checkClientAcceptance(args)) continue;
+            if (!checkClientAcceptance(newsockfd)) continue;
 
-            pthread_create(&th1, nullptr, client_thread, &args);
+            pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
     }
 
@@ -61,14 +58,13 @@ int main(int argc, char *argv[]) {
 
 void *client_thread(void *arg) {
     MESSAGE message;
-    auto *args = (clientArgs *) arg;
-    int newsockfd = (*args).socket;
+    int sockfd = *(int *) arg;
     int running = 1;
     ssize_t n;
 
     while (running) {
         do {
-            n = read(newsockfd, (void *) &message, sizeof(message));
+            n = read(sockfd, (void *) &message, sizeof(message));
         } while (n < sizeof(message));
 
         if (n < 0) {
@@ -79,12 +75,14 @@ void *client_thread(void *arg) {
             printf("Ending Connection\n");
             running = 0;
         } else {
-            ServerProcessor handler = *new ServerProcessor(newsockfd, message);
+            ServerProcessor handler = *new ServerProcessor(sockfd, message);
             handler.handleInput();
         }
     }
 
-    close(newsockfd);
+    removeClientConnectionsCount(sockfd);
+
+    close(sockfd);
 
     printf("Connection ended\n");
 
@@ -115,34 +113,37 @@ int create_connection() {
 
 }
 
-bool checkClientAcceptance(clientArgs args) {
-    int socket = args.socket;
+bool checkClientAcceptance(int sockfd) {
     bool accepted = true;
     MESSAGE message;
     ssize_t n;
 
     do {
-        n = read(socket, (void *) &message, sizeof(message));
+        n = read(sockfd, (void *) &message, sizeof(message));
     } while (n < sizeof(message));
 
     string clientName = message.client;
     strcpy(message.content, "accepted\0");
-    size_t clientConnectionsAmount = args.clients->count(clientName);
+
+    pthread_mutex_lock(&mutex);
+
+    size_t clientConnectionsAmount = clientsActiveConnections.count(clientName);
 
     if (clientConnectionsAmount) {
-        map<string, int> *clients = args.clients;
-        if ((*clients)[clientName] == MAX_CONNECTIONS_PER_CLIENT) {
+        if (clientsActiveConnections[clientName] == MAX_CONNECTIONS_PER_CLIENT) {
             fprintf(stderr, "WARNING: %s exceeded connections quota\n", clientName.c_str());
             strcpy(message.content, "denied\0");
             accepted = false;
         } else {
-            (*clients)[clientName]++;
+            clientsActiveConnections[clientName]++;
         }
     } else {
-        args.clients->insert(make_pair(clientName, 1));
+        clientsActiveConnections.insert(make_pair(clientName, 1));
     }
 
-    n = write(socket, (void *) &message, sizeof(MESSAGE));
+    pthread_mutex_unlock(&mutex);
+
+    n = write(sockfd, (void *) &message, sizeof(MESSAGE));
     if (n < 0) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
@@ -154,18 +155,35 @@ bool checkClientAcceptance(clientArgs args) {
     return accepted;
 }
 
-void removeClientConnectionsCount(clientArgs args) {
-    map<string, int> *clients = args.clients;
+bool receiveAll(int socket, void* buffer, size_t length) {
+    char* data = static_cast<char*>(buffer);
+    ssize_t totalReceived = 0;
 
-    int socket = args.socket;
+    while (totalReceived < length) {
+        ssize_t received = read(socket, data + totalReceived, length - totalReceived);
+
+        if (received < 1) {
+            return false;
+        }
+
+        totalReceived += received;
+    }
+
+    return true;
+}
+
+void removeClientConnectionsCount(int sockfd) {
     MESSAGE message;
-    ssize_t n;
 
-    do {
-        n = read(socket, (void *) &message, sizeof(message));
-    } while (n < sizeof(message));
+    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+        return;
+    }
 
-    (*clients)[message.client]--;
+    pthread_mutex_lock(&mutex);
+    string clientName = message.client;
+    clientsActiveConnections[clientName]--;
+    pthread_mutex_unlock(&mutex);
 }
 
 void createSyncDir(const string& clientName) {
