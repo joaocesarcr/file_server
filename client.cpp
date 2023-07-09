@@ -9,6 +9,7 @@
 #include <netdb.h>
 
 #include "./h/message_struct.hpp"
+#include "./clientProcessor.cpp"
 
 #define PORT 4000
 
@@ -16,7 +17,7 @@ using namespace std;
 
 int createConnection(char *argv[]);
 
-bool checkConnectionAcceptance(int socket);
+bool checkConnectionAcceptance(char clientName[], int socket);
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
@@ -37,13 +38,16 @@ int main(int argc, char *argv[]) {
         strcpy(message.content, temp.c_str());
 
         if (!strcmp(message.content, "exit")) {
-            printf("Ending Connection\n");
             running = 0;
         }
 
         n = write(sockfd, (void *) &message, sizeof(MESSAGE));
         if (n < 0)
             printf("ERROR writing to socket\n");
+
+        ClientProcessor handler = *new ClientProcessor(sockfd, message);
+        handler.handleInput();
+
 
     } while (running);
     printf("Ending connection\n");
@@ -80,19 +84,25 @@ int createConnection(char *argv[]) {
         exit(-1);
     }
 
-    if (!checkConnectionAcceptance(sockfd)) exit(-1);
+    if (!checkConnectionAcceptance(argv[2], sockfd)) exit(-1);
 
     printf("Connection established successfully.\n\n");
     return sockfd;
 
 }
 
-bool checkConnectionAcceptance(int socket) {
-    size_t n;
+bool checkConnectionAcceptance(char clientName[], int socket) {
+    ssize_t n;
     MESSAGE message;
+    strcpy(message.client, clientName);
+
+    n = write(socket, (void *) &message, sizeof(MESSAGE));
+    if (n < 0)
+        printf("ERROR writing to socket\n");
+
     do {
-        n = read(socket, (void *) &message, sizeof(message));
-    } while (n < sizeof(message));
+        n = read(socket, (void *) &message, sizeof(MESSAGE));
+    } while (n < sizeof(MESSAGE));
 
     if (strcmp(message.content, "accepted\0") == 0) return true;
 

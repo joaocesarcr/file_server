@@ -6,7 +6,7 @@
 #include <netinet/in.h>
 #include <map>
 
-#include "./handleClientInput.cpp"
+#include "./serverProcessor.cpp"
 
 #define PORT 4000
 #define MAX_CONNECTIONS_PER_CLIENT 2
@@ -112,6 +112,7 @@ int create_connection() {
 }
 
 bool checkClientAcceptance(clientArgs *args) {
+    int socket = (*args).socket;
     bool accepted = true;
     MESSAGE message;
     ssize_t n;

@@ -2,7 +2,6 @@
 #include <cstring>
 #include <dirent.h>
 #include <sstream>
-#include <utility>
 #include <vector>
 #include <string>
 
@@ -68,6 +67,7 @@ public:
     }
 
     void handleDownload() {
+        ssize_t n;
         long size = 0;
         printf("Getting file size...\n");
         n = read(socket, (void *) &size, sizeof(long));
