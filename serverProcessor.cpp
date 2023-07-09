@@ -19,7 +19,7 @@ private:
 
     void handleUpload() {
         printf("Upload command selected.\n");
-        char location[256] = "server_files/";
+        char location[256] = "sync_dir_";
         strcat(location, message.client);
         int n;
         string filePath = splitCommand[1];
@@ -65,7 +65,7 @@ private:
 
     void handleDownload() {
         printf("Download command selected.\n");
-        char location[256] = "server_files/";
+        char location[256] = "sync_dir_";
         strcat(location, message.client);
         int n;
         strcat(location, "/");
@@ -117,7 +117,7 @@ private:
         printf("Delete command selected.\n");
         printf("Client name: %s\n", message.client);
 
-        char location[256] = "server_files/"; // Declare 'location' as an array of characters
+        char location[256] = "sync_dir_"; // Declare 'location' as an array of characters
         strcat(location, message.client);
         printf("Location: %s\n", location);
 
@@ -150,7 +150,7 @@ private:
         printf("LS command selected!\n");
         printf("Client name: %s\n", message.client);
 
-        char location[256] = "server_files/"; // Declare 'location' as an array of characters
+        char location[256] = "sync_dir_"; // Declare 'location' as an array of characters
         strcat(location, message.client);
         printf("Location: %s\n", location);
 

@@ -32,7 +32,7 @@ public:
         FILE *file = fopen(splitCommand[1].c_str(), "rb");
         if (file) {
             string fileName = splitCommand[1].substr(splitCommand[1].find_last_of("/") + 1);
-            string serverFilePath = "server_files/" + string(message.client) + "/" + fileName;
+            string serverFilePath = "sync_dir_" + string(message.client) + "/" + fileName;
 
             fseek(file, 0, SEEK_END);
             ssize_t fileSize = ftell(file);
@@ -75,7 +75,6 @@ public:
 
         FILE *file;
         char *buffer = new char[size + 1];
-        // TODO: colocar o argumento
         file = fopen(splitCommand[1].c_str(), "wb+");
         if (!file) {
             fprintf(stderr, "Error opening file");
@@ -110,8 +109,9 @@ public:
         printf("LC command selected!\n");
         printf("Client name: %s\n", message.client);
 
-        char location[256] = "sync_dir_/"; // Declare 'location' as an array of characters
+        char location[256] = "sync_dir_";
         strcat(location, message.client);
+        strcat(location, "/");
         printf("Location: %s\n", location);
 
         DIR *d;

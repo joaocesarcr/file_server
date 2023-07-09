@@ -92,6 +92,7 @@ int createConnection(char *argv[]) {
 
     if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
 
+    cout << argv[1];
     createSyncDir(argv[1]);
 
     printf("Connection established successfully.\n\n");
@@ -120,7 +121,9 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 }
 
 void createSyncDir(const string& clientName) {
-    std::string syncDirPath = "/sync_dir_" + clientName;
+    string syncDirPath = "sync_dir_" + clientName;
+
+    cout << syncDirPath << endl;
 
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
