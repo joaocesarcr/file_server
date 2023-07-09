@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd == -1)
-            printf("ERROR on accept\n");
+            fprintf(stderr, "ERROR on accept\n");
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1;
@@ -68,7 +68,7 @@ void *client_thread(void *arg) {
         } while (n < sizeof(message));
 
         if (n < 0) {
-            printf("ERROR reading from socket\n");
+            fprintf(stderr, "ERROR reading from socket\n");
             return (void *) -1;
         }
         if (!strcmp(message.content, "exit")) {
@@ -93,7 +93,7 @@ int create_connection() {
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        printf("ERROR opening socket\n");
+        fprintf(stderr, "ERROR opening socket\n");
         exit(-1);
     }
 
@@ -104,7 +104,7 @@ int create_connection() {
 
     bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (bindReturn < 0) {
-        printf("ERROR on binding\n");
+        fprintf(stderr, "ERROR on binding\n");
         exit(-1);
     }
     return sockfd;
@@ -128,7 +128,7 @@ bool checkClientAcceptance(clientArgs args) {
     if (clientConnectionsAmount) {
         map<string, int> *clients = args.clients;
         if ((*clients)[clientName] == MAX_CONNECTIONS_PER_CLIENT) {
-            printf("ERROR: %s exceeded connections quota\n", clientName.c_str());
+            fprintf(stderr, "ERROR: %s exceeded connections quota\n", clientName.c_str());
             strcpy(message.content, "denied\0");
             accepted = false;
         } else {
@@ -141,7 +141,7 @@ bool checkClientAcceptance(clientArgs args) {
 
     n = write(socket, (void *) &message, sizeof(MESSAGE));
     if (n < 0) {
-        printf("ERROR writing to socket\n");
+        fprintf(stderr, "ERROR writing to socket\n");
     }
 
     return accepted;

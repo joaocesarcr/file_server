@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
         n = write(sockfd, (void *) &message, sizeof(MESSAGE));
         if (n < 0)
-            printf("ERROR writing to socket\n");
+            fprintf(stderr, "ERROR writing to socket\n");
 
         ClientProcessor handler = *new ClientProcessor(sockfd, message);
         handler.handleInput();
@@ -70,7 +70,7 @@ int createConnection(char *argv[]) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (sockfd == -1) {
-        printf("ERROR opening socket\n");
+        fprintf(stderr, "ERROR opening socket\n");
         exit(-1);
     }
 
@@ -80,7 +80,7 @@ int createConnection(char *argv[]) {
     bzero(&(serv_addr.sin_zero), 8);
 
     if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        printf("ERROR establishing connection. Exiting...\n");
+        fprintf(stderr, "ERROR establishing connection. Exiting...\n");
         exit(-1);
     }
 
@@ -98,7 +98,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 
     n = write(socket, (void *) &message, sizeof(MESSAGE));
     if (n < 0)
-        printf("ERROR writing to socket\n");
+        fprintf(stderr, "ERROR writing to socket\n");
 
     do {
         n = read(socket, (void *) &message, sizeof(MESSAGE));
@@ -106,7 +106,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 
     if (strcmp(message.content, "accepted\0") == 0) return true;
 
-    printf("ERROR: Connections quota reached\n");
+    fprintf(stderr, "ERROR: Connections quota reached\n");
 
     return false;
 }

@@ -31,14 +31,14 @@ private:
 
         FILE *file = fopen(location, "wb");
         if (!file) {
-            printf("Error creating file\n");
+            fprintf(stderr, "Error creating file\n");
             return;
         }
 
         ssize_t size;
         n = read(socket, (void *) &size, sizeof(ssize_t));
         if (n <= 0) {
-            printf("Error receiving file size\n");
+            fprintf(stderr, "Error receiving file size\n");
             fclose(file);
             return;
         }
@@ -50,7 +50,7 @@ private:
         while (totalBytesReceived < size) {
             bytesRead = read(socket, buffer, BUFFER_SIZE);
             if (bytesRead <= 0) {
-                printf("Error receiving file data\n");
+                fprintf(stderr, "Error receiving file data\n");
                 fclose(file);
                 return;
             }
@@ -75,7 +75,7 @@ private:
 
         FILE *file = fopen(location, "rb");
         if (!file) {
-            printf("Error opening file\n");
+            fprintf(stderr, "Error opening file\n");
             return;
         }
 
@@ -87,7 +87,7 @@ private:
 
         n = write(socket, (void *) &size, sizeof(long));
         if (n <= 0) {
-            printf("Error sending file size\n");
+            fprintf(stderr, "Error sending file size\n");
             fclose(file);
             return;
         }
@@ -100,7 +100,7 @@ private:
         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
             n = write(socket, buffer, bytesRead);
             if (n <= 0) {
-                printf("Error sending file data\n");
+                fprintf(stderr, "Error sending file data\n");
                 fclose(file);
                 return;
             }
@@ -109,7 +109,7 @@ private:
 
         printf("Total bytes sent: %ld\n", totalBytesSent);
         fclose(file);
-   }
+    }
 
     void handleDelete() {
         char returnMessage[MAX_MESSAGE_LENGTH + 1];
