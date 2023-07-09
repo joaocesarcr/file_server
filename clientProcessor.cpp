@@ -24,7 +24,7 @@ public:
 
     void handleUpload() {
         if (splitCommand.size() < 2) {
-            printf("ERROR: insufficient arguments\n");
+            fprintf(stderr, "ERROR: insufficient arguments\n");
             return;
         }
 
@@ -40,7 +40,7 @@ public:
 
             n = write(socket, (void *) &fileSize, sizeof(ssize_t));
             if (n <= 0) {
-                printf("Error sending file size\n");
+                fprintf(stderr, "Error sending file size\n");
                 fclose(file);
                 return;
             }
@@ -53,7 +53,7 @@ public:
             while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
                 n = write(socket, buffer, bytesRead);
                 if (n <= 0) {
-                    printf("Error sending file data\n");
+                    fprintf(stderr, "Error sending file data\n");
                     fclose(file);
                     break;
                 }
@@ -78,7 +78,7 @@ public:
         // TODO: colocar o argumento
         file = fopen(splitCommand[1].c_str(), "wb+");
         if (!file) {
-            printf("Error opening file");
+            fprintf(stderr, "Error opening file");
         }
 
         ssize_t bytesRead;
