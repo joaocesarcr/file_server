@@ -19,6 +19,8 @@ int createConnection(char *argv[]);
 
 bool checkConnectionAcceptance(char clientName[], int socket);
 
+void createSyncDir(const string& clientName);
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
@@ -90,6 +92,8 @@ int createConnection(char *argv[]) {
 
     if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
 
+    createSyncDir(argv[1]);
+
     printf("Connection established successfully.\n\n");
     return sockfd;
 
@@ -113,5 +117,11 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     fprintf(stderr, "ERROR: Connections quota reached\n");
 
     return false;
+}
+
+void createSyncDir(const string& clientName) {
+    std::string syncDirPath = "/sync_dir_" + clientName;
+
+    mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 

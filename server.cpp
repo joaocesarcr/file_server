@@ -25,6 +25,8 @@ bool checkClientAcceptance(clientArgs args);
 
 void removeClientConnectionsCount(clientArgs args);
 
+void createSyncDir(const string& clientName);
+
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
     map<string, int> clients{};
@@ -145,6 +147,10 @@ bool checkClientAcceptance(clientArgs args) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
 
+    if (accepted) {
+        createSyncDir(clientName);
+    }
+
     return accepted;
 }
 
@@ -160,4 +166,10 @@ void removeClientConnectionsCount(clientArgs args) {
     } while (n < sizeof(message));
 
     (*clients)[message.client]--;
+}
+
+void createSyncDir(const string& clientName) {
+    string dirPath = "sync_dir_" + clientName;
+
+    mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
