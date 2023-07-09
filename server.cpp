@@ -23,6 +23,8 @@ int create_connection();
 
 bool checkClientAcceptance(clientArgs args);
 
+void removeClientConnectionsCount(clientArgs args);
+
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
     map<string, int> clients{};
@@ -128,11 +130,10 @@ bool checkClientAcceptance(clientArgs args) {
     if (clientConnectionsAmount) {
         map<string, int> *clients = args.clients;
         if ((*clients)[clientName] == MAX_CONNECTIONS_PER_CLIENT) {
-            fprintf(stderr, "ERROR: %s exceeded connections quota\n", clientName.c_str());
+            fprintf(stderr, "WARNING: %s exceeded connections quota\n", clientName.c_str());
             strcpy(message.content, "denied\0");
             accepted = false;
         } else {
-            map<string, int> *clients = args.clients;
             (*clients)[clientName]++;
         }
     } else {
@@ -145,4 +146,18 @@ bool checkClientAcceptance(clientArgs args) {
     }
 
     return accepted;
+}
+
+void removeClientConnectionsCount(clientArgs args) {
+    map<string, int> *clients = args.clients;
+
+    int socket = args.socket;
+    MESSAGE message;
+    ssize_t n;
+
+    do {
+        n = read(socket, (void *) &message, sizeof(message));
+    } while (n < sizeof(message));
+
+    (*clients)[message.client]--;
 }

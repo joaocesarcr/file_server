@@ -38,6 +38,10 @@ int main(int argc, char *argv[]) {
         strcpy(message.content, temp.c_str());
 
         if (!strcmp(message.content, "exit")) {
+//            n = write(sockfd, (void *) &message, sizeof(MESSAGE));
+//            if (n < 0)
+//                fprintf(stderr, "ERROR writing to socket\n");
+
             running = 0;
         }
 
@@ -84,7 +88,7 @@ int createConnection(char *argv[]) {
         exit(-1);
     }
 
-    if (!checkConnectionAcceptance(argv[2], sockfd)) exit(-1);
+    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
 
     printf("Connection established successfully.\n\n");
     return sockfd;

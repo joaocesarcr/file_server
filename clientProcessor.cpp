@@ -107,8 +107,25 @@ public:
     }
 
     void handleLc() {
-        printf("LC content selected.\n");
-        // Your lc code here
+        printf("LC command selected!\n");
+        printf("Client name: %s\n", message.client);
+
+        char location[256] = "sync_dir_/"; // Declare 'location' as an array of characters
+        strcat(location, message.client);
+        printf("Location: %s\n", location);
+
+        DIR *d;
+        struct dirent *dir;
+        d = opendir(location);
+
+        if (d) {
+            while ((dir = readdir(d))) {
+                if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
+                    printf("%s\n", dir->d_name);
+                }
+            }
+            closedir(d);
+        }
     }
 
     void handleGsd() {
