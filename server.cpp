@@ -24,7 +24,6 @@ void createSyncDir(const string& clientName);
 
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
@@ -60,17 +59,13 @@ void *client_thread(void *arg) {
     MESSAGE message;
     int sockfd = *(int *) arg;
     int running = 1;
-    ssize_t n;
 
     while (running) {
-        do {
-            n = read(sockfd, (void *) &message, sizeof(message));
-        } while (n < sizeof(message));
-
-        if (n < 0) {
+        if (!receiveAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
             fprintf(stderr, "ERROR reading from socket\n");
             return (void *) -1;
         }
+
         if (!strcmp(message.content, "exit")) {
             printf("Ending Connection\n");
             running = 0;
@@ -116,11 +111,10 @@ int create_connection() {
 bool checkClientAcceptance(int sockfd) {
     bool accepted = true;
     MESSAGE message;
-    ssize_t n;
 
-    do {
-        n = read(sockfd, (void *) &message, sizeof(message));
-    } while (n < sizeof(message));
+    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
 
     string clientName = message.client;
     strcpy(message.content, "accepted\0");
@@ -143,8 +137,7 @@ bool checkClientAcceptance(int sockfd) {
 
     pthread_mutex_unlock(&mutex);
 
-    n = write(sockfd, (void *) &message, sizeof(MESSAGE));
-    if (n < 0) {
+    if (!sendAll(sockfd, &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
 
@@ -153,23 +146,6 @@ bool checkClientAcceptance(int sockfd) {
     }
 
     return accepted;
-}
-
-bool receiveAll(int socket, void* buffer, size_t length) {
-    char* data = static_cast<char*>(buffer);
-    ssize_t totalReceived = 0;
-
-    while (totalReceived < length) {
-        ssize_t received = read(socket, data + totalReceived, length - totalReceived);
-
-        if (received < 1) {
-            return false;
-        }
-
-        totalReceived += received;
-    }
-
-    return true;
 }
 
 void removeClientConnectionsCount(int sockfd) {

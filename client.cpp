@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sys/stat.h>
 
 #include "./h/message_struct.hpp"
 #include "./clientProcessor.cpp"
@@ -20,8 +21,6 @@ int createConnection(char *argv[]);
 bool checkConnectionAcceptance(char clientName[], int socket);
 
 void createSyncDir(const string& clientName);
-
-bool sendAll(int socket, const void* buffer, size_t length);
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
@@ -48,9 +47,9 @@ int main(int argc, char *argv[]) {
             running = 0;
         }
 
-        n = write(sockfd, (void *) &message, sizeof(MESSAGE));
-        if (n < 0)
+        if (!sendAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
             fprintf(stderr, "ERROR writing to socket\n");
+        }
 
         ClientProcessor handler = *new ClientProcessor(sockfd, message);
         handler.handleInput();
@@ -106,13 +105,13 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     MESSAGE message;
     strcpy(message.client, clientName);
 
-    n = write(socket, (void *) &message, sizeof(MESSAGE));
-    if (n < 0)
+    if (!sendAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
+    }
 
-    do {
-        n = read(socket, (void *) &message, sizeof(MESSAGE));
-    } while (n < sizeof(MESSAGE));
+    if (!receiveAll(socket, (void *) &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
 
     if (strcmp(message.content, "accepted\0") == 0) return true;
 
@@ -127,21 +126,4 @@ void createSyncDir(const string& clientName) {
     cout << syncDirPath << endl;
 
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-}
-
-bool sendAll(int socket, const void* buffer, size_t length) {
-    const char* data = static_cast<const char*>(buffer);
-    ssize_t totalSent = 0;
-
-    while (totalSent < length) {
-        ssize_t sent = write(socket, data + totalSent, length - totalSent);
-
-        if (sent == -1) {
-            return false;
-        }
-
-        totalSent += sent;
-    }
-
-    return true;
 }
