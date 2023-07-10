@@ -225,3 +225,9 @@ void *listener_thread(void *arg) {
     return nullptr;
 }
 
+void createSyncDir(const string &clientName) {
+    string dirPath = "sync_dir_" + clientName;
+
+    mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
+

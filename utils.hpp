@@ -46,4 +46,6 @@ void *inotify_thread(void *arg);
 
 void *listener_thread(void *arg);
 
+void createSyncDir(const string &clientName);
+
 #endif //FILE_SERVER_UTILS_HPP

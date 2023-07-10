@@ -24,8 +24,6 @@ bool checkClientAcceptance(int sockfd, MESSAGE message);
 
 void removeClientConnectionsCount(int sockfd);
 
-void createSyncDir(const string &clientName);
-
 MESSAGE getClientName(int sockfd);
 
 #endif 

@@ -112,9 +112,3 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 
     return false;
 }
-
-void createSyncDir(const string &clientName) {
-    string syncDirPath = "sync_dir_" + clientName;
-
-    mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-}
