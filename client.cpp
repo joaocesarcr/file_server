@@ -22,15 +22,12 @@
 
 using namespace std;
 
-vector<int> socketList;
-pthread_mutex_t mutex_socket_list = PTHREAD_MUTEX_INITIALIZER;
-
 struct ThreadArgs {
     int socket;
     string message;
 };
 
-int createConnection(char *argv[]);
+int createConnection(char *argv[], int port);
 
 bool checkConnectionAcceptance(char clientName[], int socket);
 
@@ -40,13 +37,30 @@ bool sendAll(int socket, const void* buffer, size_t length);
 
 void *inotify_thread(void *arg);
 
+void *listener_thread(void *arg);
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
         exit(-1);
     }
 
-    int sockfd = createConnection(argv);
+    int sockfd = createConnection(argv, PORT);
+    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
+    int sockfd2 = createConnection(argv, PORT + 1);
+    int sockfd3 = createConnection(argv, PORT + 2);
+
+    ThreadArgs* args = new ThreadArgs;
+    args->socket = sockfd2;
+    args->message = argv[1];
+    pthread_t th;
+    pthread_create(&th, nullptr, listener_thread, args);
+    ThreadArgs* args2 = new ThreadArgs;
+    args2->socket = sockfd3;
+    args2->message = argv[1];
+    pthread_t th2;
+    pthread_create(&th2, nullptr, inotify_thread, args2);
+    
 
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
@@ -79,7 +93,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-int createConnection(char *argv[]) {
+int createConnection(char *argv[], int port) {
     int sockfd;
     struct sockaddr_in serv_addr{};
     struct hostent *server;
@@ -98,7 +112,7 @@ int createConnection(char *argv[]) {
     }
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
     serv_addr.sin_addr = *((struct in_addr *) server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
 
@@ -107,15 +121,9 @@ int createConnection(char *argv[]) {
         exit(-1);
     }
 
-    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
-
-    ThreadArgs* args = new ThreadArgs;
-    args->socket = sockfd;
-    args->message = argv[1];
+    
 
     createSyncDir(argv[1]);
-    pthread_t th;
-    pthread_create(&th, nullptr, inotify_thread, args);
     printf("Connection established successfully.\n\n");
     return sockfd;
 
@@ -136,6 +144,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     } while (n < sizeof(MESSAGE));
 
     if (strcmp(message.content, "accepted\0") == 0){
+
         return true;  
     } 
 
@@ -146,8 +155,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 
 void createSyncDir(const string& clientName) {
     string syncDirPath = "sync_dir_" + clientName;
-    pthread_t th;
-    pthread_create(&th, nullptr, inotify_thread, const_cast<std::string*>(&clientName));
+
 
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
@@ -182,6 +190,7 @@ void *inotify_thread(void *arg) {
     ThreadArgs args = *(ThreadArgs *) arg;
 
     string clientName = args.message;
+    int sockfd = args.socket;
 
     filesystem::path currentPath = std::filesystem::current_path();
     string filename = "sync_dir_" + clientName;
@@ -213,77 +222,141 @@ void *inotify_thread(void *arg) {
         while ( i < length ) {
             struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
             if ( event->len ) {
-                if ( event->mask & IN_CREATE) {
-                    pthread_mutex_lock(&mutex);  
-                        for (int socket : socketList) {
+                if ( (event->mask & IN_CREATE) or (event->mask & IN_MODIFY)) {
+                        cout << "create" << endl;
+                        MESSAGE message;
+                        strcpy(message.client, clientName.c_str());
+                        strcpy(message.content, "create");
+                        if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");  
+
+                        char location[256] = "sync_dir_";
+                        strcat(location, message.client);
+                        cout << sockfd << endl;
+                        int n;
+                        strcat(location, "/");
+                        strcat(location, event->name);
+                        cout << event->name <<endl;
+                        if (!sendAll(sockfd, &event, sizeof(event))) fprintf(stderr, "ERROR writing to socket\n");
+                        cout << location << endl; 
+                        FILE *file = fopen(location, "rb");
+                        if (!file) {
+                            fprintf(stderr, "Error opening file\n");
+                            exit;
+                        }
+
+                        fseek(file, 0, SEEK_END);
+                        long size = ftell(file);
+                        fseek(file, 0, SEEK_SET);
+
+                        n = write(sockfd, (void *) &size, sizeof(long));
+                        if (n <= 0) {
+                            fprintf(stderr, "Error sending file size\n");
+                            fclose(file);
+                            exit;
+                        }
+
+                        const int BUFFER_SIZE = 1024;
+                        char buffer[BUFFER_SIZE];
+                        size_t bytesRead;
+                        long totalBytesSent = 0;
+
+                        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+                            n = write(sockfd, buffer, bytesRead);
+                            if (n <= 0) {
+                                fprintf(stderr, "Error sending file data\n");
+                                fclose(file);
+                                exit;
+                            }
+                            totalBytesSent += bytesRead;
+                        }
+                        fclose(file);    
+                }
+                if ( event->mask & IN_DELETE) {
                             MESSAGE message;
                             strcpy(message.client, clientName.c_str());
+                            strcpy(message.content, "delete");
+                            if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
+                            strcpy(message.client, clientName.c_str());
                             strcpy(message.content, event->name);
-                            if (!sendAll(socket, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");  
-
-                            char location[256] = "sync_dir_";
-                            strcat(location, message.client);
-                            int n;
-                            strcat(location, "/");
-                            strcat(location, event->name);
-
-                            printf("Location: %s\n", location);
-
-                            FILE *file = fopen(location, "rb");
-                            if (!file) {
-                                fprintf(stderr, "Error opening file\n");
-                                return;
-                            }
-
-                            fseek(file, 0, SEEK_END);
-                            long size = ftell(file);
-                            fseek(file, 0, SEEK_SET);
-
-                            printf("Size: %ld\n", size);
-
-                            n = write(socket, (void *) &size, sizeof(long));
-                            if (n <= 0) {
-                                fprintf(stderr, "Error sending file size\n");
-                                fclose(file);
-                                return;
-                            }
-
-                            const int BUFFER_SIZE = 1024;
-                            char buffer[BUFFER_SIZE];
-                            size_t bytesRead;
-                            long totalBytesSent = 0;
-
-                            while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-                                n = write(socket, buffer, bytesRead);
-                                if (n <= 0) {
-                                    fprintf(stderr, "Error sending file data\n");
-                                    fclose(file);
-                                    return;
-                                }
-                                totalBytesSent += bytesRead;
-                            }
-
-                            printf("Total bytes sent: %ld\n", totalBytesSent);
-                            fclose(file);
-                        }     
-                    pthread_mutex_unlock(&mutex);
-                }
-                
-                if ( event->mask & IN_MODIFY) {
-                    printf( "%s was modified\n", event->name);       
-                }
-                
-                if ( event->mask & IN_DELETE) {
-                    printf( "%s was deleted\n", event->name);       
+                            if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");      
                 }  
-
                 i += EVENT_SIZE + event->len;
             }
         }
     }
-    /* Clean up*/
     inotify_rm_watch( fd, wd );
     close( fd );
+    close( args.socket );
+    return nullptr;
+}
+
+void *listener_thread(void *arg) {
+    MESSAGE message;
+    ThreadArgs args = *(ThreadArgs *) arg;
+
+    string clientName = args.message;
+
+    filesystem::path currentPath = std::filesystem::current_path();
+    string filename = "sync_dir_" + clientName;
+    filesystem::path absolutePath = currentPath / filename;
+    string absolutePathString = absolutePath.string();
+    absolutePathString = absolutePathString + "/";
+    int sockfd = args.socket;
+    int running = 1;
+    ssize_t n;
+
+    while (running) {
+        do {
+            n = read(sockfd, (void *) &message, sizeof(message));
+        } while (n < sizeof(message));
+
+        if (n < 0) {
+            fprintf(stderr, "ERROR reading from socket\n");
+            return (void *) -1;
+        }
+        if (!strcmp(message.content, "create")) {
+            string name;
+            n = read(sockfd, (void *) &name, sizeof(char[32]));
+            string path = absolutePathString + name;
+            FILE *file = fopen(path.c_str(), "wb");
+            if (!file) {
+                fprintf(stderr, "Error opening file\n");
+                exit;
+            }
+            ssize_t size;
+            n = read(sockfd, (void *) &size, sizeof(ssize_t));
+            if (n <= 0) {
+                fprintf(stderr, "Error receiving file size\n");
+                fclose(file);
+                break;
+            }
+            const int BUFFER_SIZE = 1024;
+            char buffer[BUFFER_SIZE];
+            ssize_t bytesRead, totalBytesReceived = 0;
+
+            while (totalBytesReceived < size) {
+                bytesRead = read(sockfd, buffer, BUFFER_SIZE);
+                if (bytesRead <= 0) {
+                    fprintf(stderr, "Error receiving file data\n");
+                    fclose(file);
+                    break;
+                }
+
+                fwrite(buffer, bytesRead, 1, file);
+                totalBytesReceived += bytesRead;
+            }
+            fclose(file);
+            
+        } else if(!strcmp(message.content, "delete")) {
+            n = read(sockfd, (void *) &message, sizeof(message));
+            int removed = std::remove(message.content);
+            if (removed != 0) {
+                std::perror("Error deleting the file");
+            }
+        }
+    }
+
+    close(args.socket);
 
     return nullptr;
 }
