@@ -2,11 +2,8 @@
 #include <cstring>
 #include <dirent.h>
 #include <sstream>
-#include <utility>
 #include <vector>
 #include <string>
-
-#include <sys/stat.h>
 
 #include "./utils.hpp"
 
@@ -22,7 +19,7 @@ private:
         printf("Upload command selected.\n");
         char location[256] = "sync_dir_";
         strcat(location, message.client);
-        int n;
+
         string filePath = splitCommand[1];
         string fileName = filePath.substr(filePath.find_last_of('/') + 1);
         strcat(location, "/");
@@ -111,7 +108,6 @@ private:
 
     void handleDelete() {
         char returnMessage[MAX_MESSAGE_LENGTH + 1];
-        int n = 0;
         printf("Delete command selected.\n");
         printf("Client name: %s\n", message.client);
 

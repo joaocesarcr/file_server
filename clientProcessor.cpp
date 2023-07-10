@@ -5,11 +5,10 @@
 #include <vector>
 #include <string>
 
-#include <sys/stat.h>
-
 #include "./utils.hpp"
 
 using namespace std;
+
 class ClientProcessor {
 private:
     int socket{};
@@ -31,7 +30,7 @@ public:
         size_t n;
         FILE *file = fopen(splitCommand[1].c_str(), "rb");
         if (file) {
-            string fileName = splitCommand[1].substr(splitCommand[1].find_last_of("/") + 1);
+            string fileName = splitCommand[1].substr(splitCommand[1].find_last_of('/') + 1);
             string serverFilePath = "sync_dir_" + string(message.client) + "/" + fileName;
 
             fseek(file, 0, SEEK_END);

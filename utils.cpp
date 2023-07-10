@@ -1,11 +1,11 @@
 #include "utils.hpp"
 
-bool shoudNotify = false;
+bool shoudNotify = true;
 
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 
-bool receiveAll(int socket, void* buffer, size_t length) {
-    char* data = static_cast<char*>(buffer);
+bool receiveAll(int socket, void *buffer, size_t length) {
+    char *data = static_cast<char *>(buffer);
     ssize_t totalReceived = 0;
 
     while (totalReceived < length) {
@@ -21,8 +21,8 @@ bool receiveAll(int socket, void* buffer, size_t length) {
     return true;
 }
 
-bool sendAll(int socket, const void* buffer, size_t length) {
-    const char* data = static_cast<const char*>(buffer);
+bool sendAll(int socket, const void *buffer, size_t length) {
+    const char *data = static_cast<const char *>(buffer);
     ssize_t totalSent = 0;
 
     while (totalSent < length) {
@@ -42,11 +42,11 @@ void *inotify_thread(void *arg) {
     int length, i = 0, wd;
     int fd;
     char buffer[BUF_LEN];
-    
+
     /* Initialize Inotify*/
     fd = inotify_init();
-    if ( fd < 0 ) {
-        perror( "Couldn't initialize inotify");
+    if (fd < 0) {
+        perror("Couldn't initialize inotify");
     }
     ThreadArgs args = *(ThreadArgs *) arg;
 
@@ -60,95 +60,94 @@ void *inotify_thread(void *arg) {
 
     cout << "Absolute path: " << absolutePathString << std::endl;
 
-    wd = inotify_add_watch(fd, absolutePathString.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE); 
-    
-    if (wd == -1)
-        {
-        cout << "Couldn't add watch to"<< absolutePathString << endl;
-        }
-    else
-        {
-        cout << "Watching::" << absolutePathString << endl;
-        }
- 
-    while(1)
-    {
-        i = 0;
-        if ( !receiveAll( fd, buffer, BUF_LEN ) ) {
-            perror( "read" );
-        }  
+    wd = inotify_add_watch(fd, absolutePathString.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE);
 
-        while ( i < length ) {
-            struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
-            if ( event->len ) {
+    if (wd == -1) {
+        cout << "Couldn't add watch to" << absolutePathString << endl;
+    } else {
+        cout << "Watching::" << absolutePathString << endl;
+    }
+
+    while (true) {
+        i = 0;
+        if (!receiveAll(fd, buffer, BUF_LEN)) {
+            perror("read");
+        }
+
+        while (i < length) {
+            auto *event = (struct inotify_event *) &buffer[i];
+            if (event->len) {
                 pthread_mutex_lock(&mutex2);
-                if(shoudNotify == false){ shoudNotify = true; continue; }
+                if (!shoudNotify) {
+                    shoudNotify = true;
+                    continue;
+                }
                 shoudNotify = false;
                 pthread_mutex_unlock(&mutex2);
-                if ( (event->mask & IN_CREATE) || (event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
-                        MESSAGE message;
-                        strcpy(message.client, clientName.c_str());
-                        strcpy(message.content, "create");
-                        if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");  
+                if ((event->mask & IN_CREATE) || (event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
+                    MESSAGE message;
+                    strcpy(message.client, clientName.c_str());
+                    strcpy(message.content, "create");
+                    if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
 
-                        char location[256] = "sync_dir_";
-                        strcat(location, message.client);
-                        int n;
-                        strcat(location, "/");
-                        strcat(location, event->name);
-                        char eventName[LEN_NAME];
-                        strcpy(eventName, event->name);
-                        if (!sendAll(sockfd, &eventName, LEN_NAME)) fprintf(stderr, "ERROR writing to socket\n");
-                        FILE *file = fopen(location, "rb");
-                        if (!file) {
-                            fprintf(stderr, "Error opening file\n");
-                            exit;
-                        }
+                    char location[256] = "sync_dir_";
+                    strcat(location, message.client);
+                    int n;
+                    strcat(location, "/");
+                    strcat(location, event->name);
+                    char eventName[LEN_NAME];
+                    strcpy(eventName, event->name);
+                    if (!sendAll(sockfd, &eventName, LEN_NAME)) fprintf(stderr, "ERROR writing to socket\n");
+                    FILE *file = fopen(location, "rb");
+                    if (!file) {
+                        fprintf(stderr, "Error opening file\n");
+                        exit;
+                    }
 
-                        fseek(file, 0, SEEK_END);
-                        long size = ftell(file);
-                        fseek(file, 0, SEEK_SET);
+                    fseek(file, 0, SEEK_END);
+                    long size = ftell(file);
+                    fseek(file, 0, SEEK_SET);
 
-                        if (!sendAll(sockfd, (void *) &size, sizeof(long))) {
-                            fprintf(stderr, "Error sending file size\n");
+                    if (!sendAll(sockfd, (void *) &size, sizeof(long))) {
+                        fprintf(stderr, "Error sending file size\n");
+                        fclose(file);
+                        exit;
+                    }
+                    cout << "size: " << size << endl;
+
+                    const int BUFFER_SIZE = 1024;
+                    char buffer[BUFFER_SIZE];
+                    size_t bytesRead;
+                    long totalBytesSent = 0;
+
+                    while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+                        if (!sendAll(sockfd, buffer, bytesRead)) {
+                            fprintf(stderr, "Error sending file data\n");
                             fclose(file);
                             exit;
                         }
-                        cout << "size: " << size << endl;
+                        totalBytesSent += bytesRead;
+                    }
 
-                        const int BUFFER_SIZE = 1024;
-                        char buffer[BUFFER_SIZE];
-                        size_t bytesRead;
-                        long totalBytesSent = 0;
-
-                        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-                            if (!sendAll(sockfd, buffer, bytesRead)) {
-                                fprintf(stderr, "Error sending file data\n");
-                                fclose(file);
-                                exit;
-                            }
-                            totalBytesSent += bytesRead;
-                        }
-
-                        cout << "total: " << totalBytesSent  <<  endl;
-                        fclose(file);    
+                    cout << "total: " << totalBytesSent << endl;
+                    fclose(file);
                 }
-                if ( event->mask & IN_DELETE) {
-                            MESSAGE message;
-                            strcpy(message.client, clientName.c_str());
-                            strcpy(message.content, "delete");
-                            if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
-                            strcpy(message.client, clientName.c_str());
-                            strcpy(message.content, event->name);
-                            if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");      
-                }  
+                if (event->mask & IN_DELETE) {
+                    MESSAGE message;
+                    strcpy(message.client, clientName.c_str());
+                    strcpy(message.content, "delete");
+                    if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
+                    strcpy(message.client, clientName.c_str());
+                    strcpy(message.content, event->name);
+                    if (!sendAll(sockfd, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
+                }
                 i += EVENT_SIZE + event->len;
             }
         }
     }
-    inotify_rm_watch( fd, wd );
-    close( fd );
-    close( args.socket );
+    inotify_rm_watch(fd, wd);
+    close(fd);
+    close(args.socket);
     return nullptr;
 }
 
@@ -207,12 +206,12 @@ void *listener_thread(void *arg) {
                 fwrite(buffer, bytesRead, 1, file);
                 totalBytesReceived += bytesRead;
             }
-            cout << "total: " << totalBytesReceived <<  endl;
+            cout << "total: " << totalBytesReceived << endl;
             fclose(file);
             clock_t start_time = clock();
             while ((clock() - start_time) / CLOCKS_PER_SEC < 10);
-            
-        } else if(!strcmp(message.content, "delete")) {
+
+        } else if (!strcmp(message.content, "delete")) {
             n = receiveAll(sockfd, (void *) &message, sizeof(message));
             int removed = std::remove(message.content);
             if (removed != 0) {

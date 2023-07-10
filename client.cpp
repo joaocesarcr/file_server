@@ -12,17 +12,17 @@ int main(int argc, char *argv[]) {
     int sockfd2 = createConnection(argv, PORT + 1);
     int sockfd3 = createConnection(argv, PORT + 2);
 
-    ThreadArgs* args = new ThreadArgs;
+    auto *args = new ThreadArgs;
     args->socket = sockfd2;
     args->message = argv[1];
     pthread_t th;
     pthread_create(&th, nullptr, listener_thread, args);
-    ThreadArgs* args2 = new ThreadArgs;
+    auto *args2 = new ThreadArgs;
     args2->socket = sockfd3;
     args2->message = argv[1];
     pthread_t th2;
     pthread_create(&th2, nullptr, inotify_thread, args2);
-    
+
 
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
@@ -83,7 +83,6 @@ int createConnection(char *argv[], int port) {
         exit(-1);
     }
 
-    
 
     createSyncDir(argv[1]);
     printf("Connection established successfully.\n\n");
@@ -99,24 +98,23 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     if (!sendAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
-     
+
 
     if (!receiveAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR reading from socket\n");
     }
 
-    if (strcmp(message.content, "accepted\0") == 0){
-        return true;  
-    } 
+    if (strcmp(message.content, "accepted\0") == 0) {
+        return true;
+    }
 
     fprintf(stderr, "ERROR: Connections quota reached\n");
 
     return false;
 }
 
-void createSyncDir(const string& clientName) {
+void createSyncDir(const string &clientName) {
     string syncDirPath = "sync_dir_" + clientName;
-
 
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }

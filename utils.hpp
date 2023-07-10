@@ -12,12 +12,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <map>
-#include <errno.h>
+#include <cerrno>
 #include <sys/types.h>
 #include <sys/inotify.h>
-#include <limits.h> 
+#include <climits>
 #include <filesystem>
 #include <iostream>
+#include <sys/stat.h>
+
 
 #include "./h/message_struct.hpp"
 
@@ -36,9 +38,9 @@ struct ThreadArgs {
     string message;
 };
 
-bool receiveAll(int socket, void* buffer, size_t length);
+bool receiveAll(int socket, void *buffer, size_t length);
 
-bool sendAll(int socket, const void* buffer, size_t length);
+bool sendAll(int socket, const void *buffer, size_t length);
 
 void *inotify_thread(void *arg);
 

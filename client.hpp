@@ -16,7 +16,9 @@
 #include "./clientProcessor.cpp"
 
 int createConnection(char *argv[], int port);
+
 bool checkConnectionAcceptance(char clientName[], int socket);
-void createSyncDir(const std::string& clientName);
+
+void createSyncDir(const std::string &clientName);
 
 #endif  // CLIENT_HEADER_H

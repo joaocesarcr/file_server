@@ -35,10 +35,10 @@ int main(int argc, char *argv[]) {
         else {
             printf("Connection established successfully.\n\n");
             pthread_t th1, th2, th3;
-            ThreadArgs* args = new ThreadArgs;
+            auto *args = new ThreadArgs;
             args->socket = newsockfd2;
             args->message = message.client;
-            ThreadArgs* args2 = new ThreadArgs;
+            auto *args2 = new ThreadArgs;
             args2->socket = newsockfd3;
             args2->message = message.client;
             pthread_create(&th3, nullptr, inotify_thread, args);
@@ -100,7 +100,7 @@ int create_connection(int port) {
     return sockfd;
 }
 
-MESSAGE getClientName(int sockfd){
+MESSAGE getClientName(int sockfd) {
     MESSAGE message;
 
     if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
@@ -158,7 +158,7 @@ void removeClientConnectionsCount(int sockfd) {
     pthread_mutex_unlock(&mutex);
 }
 
-void createSyncDir(const string& clientName) {
+void createSyncDir(const string &clientName) {
     string dirPath = "sync_dir_" + clientName;
 
     mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);

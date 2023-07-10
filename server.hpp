@@ -8,9 +8,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <map>
-#include <errno.h>
+#include <cerrno>
 #include <sys/types.h>
-#include <limits.h> 
+#include <climits>
 #include <filesystem>
 #include <iostream>
 
@@ -24,7 +24,7 @@ bool checkClientAcceptance(int sockfd, MESSAGE message);
 
 void removeClientConnectionsCount(int sockfd);
 
-void createSyncDir(const string& clientName);
+void createSyncDir(const string &clientName);
 
 MESSAGE getClientName(int sockfd);
 
