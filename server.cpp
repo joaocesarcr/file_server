@@ -1,26 +1,4 @@
-#include <pthread.h>
-#include <cstdio>
-#include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <map>
-
-#include "./serverProcessor.cpp"
-
-#define PORT 4000
-#define MAX_CONNECTIONS_PER_CLIENT 2
-#define MAX_TOTAL_CONNECTIONS 5
-
-void *client_thread(void *arg);
-
-int create_connection();
-
-bool checkClientAcceptance(int sockfd);
-
-void removeClientConnectionsCount(int sockfd);
-
-void createSyncDir(const string& clientName);
+#include "./server.hpp"
 
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -28,30 +6,46 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr{};
     int sockfd, newsockfd;
+    int sockfd2, newsockfd2;
+    int sockfd3, newsockfd3;
     socklen_t clilen;
+    MESSAGE message;
 
     clilen = sizeof(struct sockaddr_in);
-    sockfd = create_connection();
+    sockfd = create_connection(PORT);
+    sockfd2 = create_connection(PORT + 1);
+    sockfd3 = create_connection(PORT + 2);
 
     // tells the socket that new connections shall be accepted
     listen(sockfd, MAX_TOTAL_CONNECTIONS);
+    listen(sockfd2, MAX_TOTAL_CONNECTIONS);
+    listen(sockfd3, MAX_TOTAL_CONNECTIONS);
     printf("Waiting accept\n");
 
     // get a new socket with a new incoming connection
 
     while (true) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        message = getClientName(newsockfd);
+        if (!checkClientAcceptance(newsockfd, message)) continue;
+        newsockfd2 = accept(sockfd2, (struct sockaddr *) &cli_addr, &clilen);
+        newsockfd3 = accept(sockfd3, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd == -1)
             fprintf(stderr, "ERROR on accept\n");
         else {
             printf("Connection established successfully.\n\n");
-            pthread_t th1;
-            if (!checkClientAcceptance(newsockfd)) continue;
-
+            pthread_t th1, th2, th3;
+            ThreadArgs* args = new ThreadArgs;
+            args->socket = newsockfd2;
+            args->message = message.client;
+            ThreadArgs* args2 = new ThreadArgs;
+            args2->socket = newsockfd3;
+            args2->message = message.client;
+            pthread_create(&th3, nullptr, inotify_thread, args);
+            pthread_create(&th2, nullptr, listener_thread, args2);
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
     }
-
     return 0;
 }
 
@@ -84,7 +78,7 @@ void *client_thread(void *arg) {
     return nullptr;
 }
 
-int create_connection() {
+int create_connection(int port) {
     int sockfd, bindReturn;
     struct sockaddr_in serv_addr{};
 
@@ -95,27 +89,35 @@ int create_connection() {
     }
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(serv_addr.sin_zero), 8);
-
     bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (bindReturn < 0) {
         fprintf(stderr, "ERROR on binding\n");
         exit(-1);
     }
     return sockfd;
-
 }
 
-bool checkClientAcceptance(int sockfd) {
-    bool accepted = true;
+MESSAGE getClientName(int sockfd){
     MESSAGE message;
 
     if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR reading from socket\n");
     }
 
+    return message;
+}
+
+bool checkClientAcceptance(int sockfd, MESSAGE message) {
+    bool accepted = true;
+
+    MESSAGE message;
+
+    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
     string clientName = message.client;
     strcpy(message.content, "accepted\0");
 
@@ -167,3 +169,6 @@ void createSyncDir(const string& clientName) {
 
     mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
+
+
+

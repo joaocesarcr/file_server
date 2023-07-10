@@ -1,26 +1,5 @@
-#include <cstdio>
-#include <cstdlib>
-#include <unistd.h>
-#include <cstring>
-#include <string>
-#include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/stat.h>
+#include "./client.hpp"
 
-#include "./h/message_struct.hpp"
-#include "./clientProcessor.cpp"
-
-#define PORT 4000
-
-using namespace std;
-
-int createConnection(char *argv[]);
-
-bool checkConnectionAcceptance(char clientName[], int socket);
-
-void createSyncDir(const string& clientName);
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
@@ -28,7 +7,22 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    int sockfd = createConnection(argv);
+    int sockfd = createConnection(argv, PORT);
+    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
+    int sockfd2 = createConnection(argv, PORT + 1);
+    int sockfd3 = createConnection(argv, PORT + 2);
+
+    ThreadArgs* args = new ThreadArgs;
+    args->socket = sockfd2;
+    args->message = argv[1];
+    pthread_t th;
+    pthread_create(&th, nullptr, listener_thread, args);
+    ThreadArgs* args2 = new ThreadArgs;
+    args2->socket = sockfd3;
+    args2->message = argv[1];
+    pthread_t th2;
+    pthread_create(&th2, nullptr, inotify_thread, args2);
+    
 
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
@@ -36,7 +30,6 @@ int main(int argc, char *argv[]) {
     do {
         ssize_t n;
         string temp;
-        printf("%s: ", message.client);
         getline(cin, temp);
         strcpy(message.content, temp.c_str());
 
@@ -62,7 +55,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-int createConnection(char *argv[]) {
+int createConnection(char *argv[], int port) {
     int sockfd;
     struct sockaddr_in serv_addr{};
     struct hostent *server;
@@ -81,7 +74,7 @@ int createConnection(char *argv[]) {
     }
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
     serv_addr.sin_addr = *((struct in_addr *) server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
 
@@ -90,11 +83,9 @@ int createConnection(char *argv[]) {
         exit(-1);
     }
 
-    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
+    
 
-    cout << argv[1];
     createSyncDir(argv[1]);
-
     printf("Connection established successfully.\n\n");
     return sockfd;
 
@@ -104,6 +95,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     ssize_t n;
     MESSAGE message;
     strcpy(message.client, clientName);
+    string threadArgName = message.client;
 
     if (!sendAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
@@ -113,7 +105,11 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
         fprintf(stderr, "ERROR reading from socket\n");
     }
 
-    if (strcmp(message.content, "accepted\0") == 0) return true;
+    if (strcmp(message.content, "accepted\0") == 0){
+
+
+        return true;  
+    } 
 
     fprintf(stderr, "ERROR: Connections quota reached\n");
 
@@ -123,7 +119,6 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 void createSyncDir(const string& clientName) {
     string syncDirPath = "sync_dir_" + clientName;
 
-    cout << syncDirPath << endl;
 
     mkdir(syncDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
