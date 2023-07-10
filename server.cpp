@@ -53,17 +53,13 @@ void *client_thread(void *arg) {
     MESSAGE message;
     int sockfd = *(int *) arg;
     int running = 1;
-    ssize_t n;
 
     while (running) {
-        do {
-            n = read(sockfd, (void *) &message, sizeof(message));
-        } while (n < sizeof(message));
-
-        if (n < 0) {
+        if (!receiveAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
             fprintf(stderr, "ERROR reading from socket\n");
             return (void *) -1;
         }
+
         if (!strcmp(message.content, "exit")) {
             printf("Ending Connection\n");
             running = 0;
@@ -106,11 +102,10 @@ int create_connection(int port) {
 
 MESSAGE getClientName(int sockfd){
     MESSAGE message;
-    ssize_t n;
 
-    do {
-        n = read(sockfd, (void *) &message, sizeof(message));
-    } while (n < sizeof(message));
+    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
 
     return message;
 }
@@ -140,8 +135,7 @@ bool checkClientAcceptance(int sockfd, MESSAGE message) {
 
     pthread_mutex_unlock(&mutex);
 
-    n = write(sockfd, (void *) &message, sizeof(MESSAGE));
-    if (n < 0) {
+    if (!sendAll(sockfd, &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
 

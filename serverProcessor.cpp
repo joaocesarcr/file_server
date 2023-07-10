@@ -36,9 +36,8 @@ private:
         }
 
         ssize_t size;
-        n = read(socket, (void *) &size, sizeof(ssize_t));
-        if (n <= 0) {
-            fprintf(stderr, "Error receiving file size\n");
+        if (!receiveAll(socket, (void *) &size, sizeof(ssize_t))) {
+            fprintf(stderr, "ERROR receiving file size\n");
             fclose(file);
             return;
         }
@@ -85,9 +84,8 @@ private:
 
         printf("Size: %ld\n", size);
 
-        n = write(socket, (void *) &size, sizeof(long));
-        if (n <= 0) {
-            fprintf(stderr, "Error sending file size\n");
+        if (!sendAll(socket, (void *) &size, sizeof(long))) {
+            fprintf(stderr, "ERROR sending file size\n");
             fclose(file);
             return;
         }
@@ -98,8 +96,7 @@ private:
         long totalBytesSent = 0;
 
         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-            n = write(socket, buffer, bytesRead);
-            if (n <= 0) {
+            if (!sendAll(socket, buffer, bytesRead)) {
                 fprintf(stderr, "Error sending file data\n");
                 fclose(file);
                 return;
@@ -135,7 +132,9 @@ private:
 
                 printf("Successfully deleted file: %s\n\n", splitCommand[1].c_str());
                 snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", splitCommand[1].c_str());
-                n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
+                if (!sendAll(socket, returnMessage, MAX_MESSAGE_LENGTH)) {
+                    fprintf(stderr, "Error sending delete confirmation\n");
+                }
                 closedir(d);
                 return;
             }
@@ -143,7 +142,9 @@ private:
             closedir(d);
         }
         snprintf(returnMessage, sizeof(returnMessage), "Failed to delete %s \n", splitCommand[1].c_str());
-        n = write(socket, returnMessage, MAX_MESSAGE_LENGTH);
+        if (!sendAll(socket, returnMessage, MAX_MESSAGE_LENGTH)) {
+            fprintf(stderr, "Error sending delete fail message\n");
+        }
     }
 
     void handleLs() {
@@ -169,7 +170,10 @@ private:
             }
             closedir(d);
             strcpy(directoryNames[count], "");
-            n = write(socket, directoryNames, 12800);
+
+            if (!sendAll(socket, directoryNames, 12800)) {
+                fprintf(stderr, "ERROR sending ls command result\n");
+            }
         }
     }
 

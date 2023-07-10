@@ -12,4 +12,4 @@ add_executable(file_server
         clientProcessor.cpp
         server.cpp
         serverProcessor.cpp
-        teste.cpp)
+        teste.cpp utils.cpp)

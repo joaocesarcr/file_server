@@ -39,9 +39,9 @@ int main(int argc, char *argv[]) {
             running = 0;
         }
 
-        n = write(sockfd, (void *) &message, sizeof(MESSAGE));
-        if (n < 0)
+        if (!sendAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
             fprintf(stderr, "ERROR writing to socket\n");
+        }
 
         ClientProcessor handler = *new ClientProcessor(sockfd, message);
         handler.handleInput();
@@ -96,13 +96,13 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     strcpy(message.client, clientName);
     string threadArgName = message.client;
 
-    n = write(socket, (void *) &message, sizeof(MESSAGE));
-    if (n < 0)
+    if (!sendAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
+    }
 
-    do {
-        n = read(socket, (void *) &message, sizeof(MESSAGE));
-    } while (n < sizeof(MESSAGE));
+    if (!receiveAll(socket, (void *) &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
 
     if (strcmp(message.content, "accepted\0") == 0){
 

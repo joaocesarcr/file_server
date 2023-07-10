@@ -74,9 +74,7 @@ void *inotify_thread(void *arg) {
     while(1)
     {
         i = 0;
-        length = read( fd, buffer, BUF_LEN );  
-
-        if ( length < 0 ) {
+        if ( !receiveAll( fd, buffer, BUF_LEN ) ) {
             perror( "read" );
         }  
 
@@ -111,8 +109,7 @@ void *inotify_thread(void *arg) {
                         long size = ftell(file);
                         fseek(file, 0, SEEK_SET);
 
-                        n = write(sockfd, (void *) &size, sizeof(long));
-                        if (n <= 0) {
+                        if (!sendAll(sockfd, (void *) &size, sizeof(long))) {
                             fprintf(stderr, "Error sending file size\n");
                             fclose(file);
                             exit;
@@ -125,8 +122,7 @@ void *inotify_thread(void *arg) {
                         long totalBytesSent = 0;
 
                         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-                            n = write(sockfd, buffer, bytesRead);
-                            if (n <= 0) {
+                            if (!sendAll(sockfd, buffer, bytesRead)) {
                                 fprintf(stderr, "Error sending file data\n");
                                 fclose(file);
                                 exit;
@@ -172,11 +168,7 @@ void *listener_thread(void *arg) {
     ssize_t n;
 
     while (running) {
-        do {
-            n = read(sockfd, (void *) &message, sizeof(message));
-        } while (n < sizeof(message));
-
-        if (n < 0) {
+        if (!receiveAll(sockfd, (void *) &message, sizeof(message))) {
             fprintf(stderr, "ERROR reading from socket\n");
             return (void *) -1;
         }
@@ -221,7 +213,7 @@ void *listener_thread(void *arg) {
             while ((clock() - start_time) / CLOCKS_PER_SEC < 10);
             
         } else if(!strcmp(message.content, "delete")) {
-            n = read(sockfd, (void *) &message, sizeof(message));
+            n = receiveAll(sockfd, (void *) &message, sizeof(message));
             int removed = std::remove(message.content);
             if (removed != 0) {
                 std::perror("Error deleting the file");
