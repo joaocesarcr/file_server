@@ -92,22 +92,27 @@ int createConnection(char *argv[], int port) {
 }
 
 bool checkConnectionAcceptance(char clientName[], int socket) {
-    ssize_t n;
     MESSAGE message;
     strcpy(message.client, clientName);
     string threadArgName = message.client;
+
+    cout << "bah" << endl;
 
     if (!sendAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR writing to socket\n");
     }
 
+     cout << "guri" << endl;
+
+     
+
     if (!receiveAll(socket, (void *) &message, sizeof(MESSAGE))) {
         fprintf(stderr, "ERROR reading from socket\n");
     }
 
+    cout << "nem" << endl;
+
     if (strcmp(message.content, "accepted\0") == 0){
-
-
         return true;  
     } 
 
