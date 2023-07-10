@@ -1,5 +1,6 @@
 #include "./client.hpp"
 
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
@@ -105,6 +106,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     }
 
     if (strcmp(message.content, "accepted\0") == 0){
+
 
         return true;  
     } 

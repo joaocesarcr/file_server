@@ -112,8 +112,12 @@ MESSAGE getClientName(int sockfd){
 
 bool checkClientAcceptance(int sockfd, MESSAGE message) {
     bool accepted = true;
-    ssize_t n;
 
+    MESSAGE message;
+
+    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
+        fprintf(stderr, "ERROR reading from socket\n");
+    }
     string clientName = message.client;
     strcpy(message.content, "accepted\0");
 
