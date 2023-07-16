@@ -118,43 +118,7 @@ private:
         fclose(file);
     }
 
-    void handleDelete() {
-        char returnMessage[MAX_MESSAGE_LENGTH + 1];
-        printf("Delete command selected.\n");
-        printf("Client name: %s\n", message.client);
-
-        char location[256] = "sync_dir_"; // Declare 'location' as an array of characters
-        strcat(location, message.client);
-        printf("Location: %s\n", location);
-
-        DIR *d;
-        struct dirent *dir;
-        d = opendir(location);
-
-        if (d) {
-            while ((dir = readdir(d))) {
-                if (dir->d_name != splitCommand[1]) continue;
-
-                strcat(location, "/");
-                strcat(location, dir->d_name);
-                remove(location);
-
-                printf("Successfully deleted file: %s\n\n", splitCommand[1].c_str());
-                snprintf(returnMessage, sizeof(returnMessage), "%s deleted\n", splitCommand[1].c_str());
-                if (!sendAll(socket, returnMessage, MAX_MESSAGE_LENGTH)) {
-                    fprintf(stderr, "Error sending delete confirmation\n");
-                }
-                closedir(d);
-                return;
-            }
-            printf("Fail to delete file [%s]: not found\n\n", splitCommand[1].c_str());
-            closedir(d);
-        }
-        snprintf(returnMessage, sizeof(returnMessage), "Failed to delete %s \n", splitCommand[1].c_str());
-        if (!sendAll(socket, returnMessage, MAX_MESSAGE_LENGTH)) {
-            fprintf(stderr, "Error sending delete fail message\n");
-        }
-    }
+    void handleDelete() {}
 
     void handleLs() {
         printf("LS command selected!\n");

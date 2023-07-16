@@ -122,7 +122,32 @@ public:
     }
 
     void handleDelete() {
+        string location = "sync_dir_" + string(message.client);
 
+        DIR *d;
+        struct dirent *dir;
+        d = opendir(location.c_str());
+
+        if (!d) {
+            fprintf(stderr, "ERROR Failed to open directory.\n");
+        } else {
+            string fileToDelete = splitCommand[1];
+
+            while ((dir = readdir(d))) {
+                if (dir->d_name != fileToDelete) continue;
+
+                string filePath = location + "/" + dir->d_name;
+                if (remove(filePath.c_str()) == 0) {
+                    printf("Successfully deleted file: %s\n\n", fileToDelete.c_str());
+                } else {
+                    printf("Failed to delete file: %s\n", fileToDelete.c_str());
+                }
+                closedir(d);
+                return;
+            }
+            printf("Fail to delete file [%s]: not found\n\n", fileToDelete.c_str());
+            closedir(d);
+        }
     }
 
     void handleLs() {
