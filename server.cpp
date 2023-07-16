@@ -41,8 +41,10 @@ int main(int argc, char *argv[]) {
             auto *args2 = new ThreadArgs;
             args2->socket = newsockfd3;
             args2->message = message.client;
-            pthread_create(&th3, nullptr, inotify_thread, args);
-            pthread_create(&th2, nullptr, listener_thread, args2);
+            //pthread_create(&th3, nullptr, inotify_thread, args);
+            pthread_create(&th3, nullptr, monitor_sync_dir_folder, args);
+            //pthread_create(&th2, nullptr, listener_thread, args2);
+            pthread_create(&th2, nullptr, listenSocket, args2);
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
     }

@@ -16,12 +16,14 @@ int main(int argc, char *argv[]) {
     args->socket = sockfd2;
     args->message = argv[1];
     pthread_t th;
-    pthread_create(&th, nullptr, listener_thread, args);
+    //pthread_create(&th, nullptr, listener_thread, args);
+    pthread_create(&th, nullptr, listenSocket, args);
     auto *args2 = new ThreadArgs;
     args2->socket = sockfd3;
     args2->message = argv[1];
     pthread_t th2;
-    pthread_create(&th2, nullptr, inotify_thread, args2);
+    //pthread_create(&th2, nullptr, inotify_thread, args2);
+    pthread_create(&th2, nullptr, monitor_sync_dir_folder, args2);
 
 
     MESSAGE message;

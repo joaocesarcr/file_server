@@ -41,6 +41,10 @@ bool receiveAll(int socket, void *buffer, size_t length);
 
 bool sendAll(int socket, const void *buffer, size_t length);
 
+void *monitor_sync_dir_folder(void *arg);
+
+void *listenSocket(void* arg);
+
 void *inotify_thread(void *arg);
 
 void *listener_thread(void *arg);
