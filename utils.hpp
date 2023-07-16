@@ -45,10 +45,6 @@ void *monitor_sync_dir_folder(void *arg);
 
 void *listenSocket(void* arg);
 
-void *inotify_thread(void *arg);
-
-void *listener_thread(void *arg);
-
 void createSyncDir(const string &clientName);
 
 #endif //FILE_SERVER_UTILS_HPP
