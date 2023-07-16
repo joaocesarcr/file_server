@@ -101,7 +101,7 @@ void *inotify_thread(void *arg) {
                     FILE *file = fopen(location, "rb");
                     if (!file) {
                         fprintf(stderr, "Error opening file\n");
-                        exit;
+                        exit(-1);
                     }
 
                     fseek(file, 0, SEEK_END);
@@ -111,7 +111,7 @@ void *inotify_thread(void *arg) {
                     if (!sendAll(sockfd, (void *) &size, sizeof(long))) {
                         fprintf(stderr, "Error sending file size\n");
                         fclose(file);
-                        exit;
+                        exit(-1);
                     }
                     cout << "size: " << size << endl;
 
@@ -124,7 +124,7 @@ void *inotify_thread(void *arg) {
                         if (!sendAll(sockfd, buffer, bytesRead)) {
                             fprintf(stderr, "Error sending file data\n");
                             fclose(file);
-                            exit;
+                            exit(-1);
                         }
                         totalBytesSent += bytesRead;
                     }

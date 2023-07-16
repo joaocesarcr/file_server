@@ -64,7 +64,6 @@ private:
         printf("Download command selected.\n");
         char location[256] = "sync_dir_";
         strcat(location, message.client);
-        int n;
         strcat(location, "/");
         strcat(location, splitCommand[1].c_str());
 
@@ -156,7 +155,7 @@ private:
         struct dirent *dir;
         d = opendir(location);
         char directoryNames[50][256]; // Array to store directory names
-        int n, count = 0; // Count of directory names
+        int count = 0; // Count of directory names
 
         if (d) {
             while ((dir = readdir(d))) {

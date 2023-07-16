@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
     int running = 1;
     do {
-        ssize_t n;
         string temp;
         getline(cin, temp);
         strcpy(message.content, temp.c_str());

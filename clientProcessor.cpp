@@ -27,7 +27,6 @@ public:
             return;
         }
 
-        size_t n;
         FILE *file = fopen(splitCommand[1].c_str(), "rb");
         if (file) {
             string fileName = splitCommand[1].substr(splitCommand[1].find_last_of('/') + 1);
@@ -91,7 +90,6 @@ public:
     }
 
     void handleLs() {
-        size_t n;
         char directoryNames[50][256];
         if (!receiveAll(socket, directoryNames, 12800)) {
             fprintf(stderr, "ERROR reading from socket\n");
