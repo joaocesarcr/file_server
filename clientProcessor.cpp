@@ -27,61 +27,97 @@ public:
             return;
         }
 
+        string fileName = splitCommand[1].substr(splitCommand[1].find_last_of('/') + 1);
+        string clientFilePath = "sync_dir_" + string(message.client) + "/" + fileName;
+
+        int fileSize = -1;
         FILE *file = fopen(splitCommand[1].c_str(), "rb");
-        if (file) {
-            string fileName = splitCommand[1].substr(splitCommand[1].find_last_of('/') + 1);
-            string serverFilePath = "sync_dir_" + string(message.client) + "/" + fileName;
-
-            fseek(file, 0, SEEK_END);
-            ssize_t fileSize = ftell(file);
-            fseek(file, 0, SEEK_SET);
-
+        if (!file) {
             if (!sendAll(socket, (void *) &fileSize, sizeof(ssize_t))) {
-                fprintf(stderr, "Error sending file size\n");
+                fprintf(stderr, "ERROR: fail to send not existent file message\n");
+            }
+            fprintf(stderr, "ERROR not existent file message\n");
+            fclose(file);
+            return;
+        }
+
+        fseek(file, 0, SEEK_END);
+        fileSize = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        if (!sendAll(socket, (void *) &fileSize, sizeof(int))) {
+            fprintf(stderr, "Error sending file size\n");
+            fclose(file);
+            return;
+        }
+
+        if (fileSize == 0) {
+            fclose(file);
+            return;
+        }
+
+        const int BUFFER_SIZE = 1024;
+        char buffer[BUFFER_SIZE];
+        size_t bytesRead;
+        size_t totalBytesSent = 0;
+
+        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE - 1, file)) > 0) {
+            if (!sendAll(socket, (void *) buffer, bytesRead)) {
+                fprintf(stderr, "Error sending file data\n");
+                fclose(file);
+                break;
+            }
+
+            totalBytesSent += bytesRead;
+        }
+
+        printf("Upload successful.\n");
+        fclose(file);
+    }
+
+    void handleDownload() {
+        printf("Download command selected.\n");
+
+        int size;
+        if (!receiveAll(socket, (void *) &size, sizeof(int))) {
+            fprintf(stderr, "ERROR receiving file size\n");
+            return;
+        }
+        printf("File size: %d\n", size);
+
+        if (size == -1) {
+            fprintf(stderr, "ERROR: file not found\n");
+            return;
+        }
+
+        string filePath = splitCommand[1];
+        string fileName = filePath.substr(filePath.find_last_of('/') + 1);
+
+        FILE *file = fopen(fileName.c_str(), "wb");
+        if (!file) {
+            fprintf(stderr, "Error creating file\n");
+            return;
+        }
+
+        const int BUFFER_SIZE = 1024;
+        char buffer[BUFFER_SIZE];
+        ssize_t bytesRead, totalBytesReceived = 0;
+
+        while (totalBytesReceived < (size - 1)) {
+            bytesRead = read(socket, buffer, BUFFER_SIZE - 1);
+            if (bytesRead <= 0) {
+                fprintf(stderr, "Error receiving file data\n");
                 fclose(file);
                 return;
             }
 
-            const int BUFFER_SIZE = 1024;
-            char buffer[BUFFER_SIZE];
-            ssize_t bytesRead;
-            ssize_t totalBytesSent = 0;
+            buffer[bytesRead] = '\0';
 
-            while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-                if (!sendAll(socket, (void *) buffer, sizeof(bytesRead))) {
-                    fprintf(stderr, "Error sending file data\n");
-                    fclose(file);
-                    break;
-                }
-
-                totalBytesSent += bytesRead;
-            }
-
-            printf("Total bytes sent: %zd\n", totalBytesSent);
-            fclose(file);
-        }
-    }
-
-    void handleDownload() {
-        long size = 0;
-        printf("Getting file size...\n");
-        if (!receiveAll(socket, &size, sizeof(long))) {
-            fprintf(stderr, "ERROR reading from socket\n");
-        }
-        printf("File size: %ld\n", size);
-
-        FILE *file;
-        char *buffer = new char[size + 1];
-        file = fopen(splitCommand[1].c_str(), "wb+");
-        if (!file) {
-            fprintf(stderr, "Error opening file");
+            fwrite(buffer, bytesRead, 1, file);
+            totalBytesReceived += bytesRead;
         }
 
-        if (!receiveAll(socket, (void *) buffer, sizeof(size))) {
-            fprintf(stderr, "ERROR reading from socket\n");
-        }
-        fwrite(buffer, size, 1, file);
-        delete[] buffer;
+        printf("Download successful.\n");
         fclose(file);
     }
 
@@ -103,13 +139,9 @@ public:
     }
 
     void handleLc() {
-        printf("LC command selected!\n");
-        printf("Client name: %s\n", message.client);
-
         char location[256] = "sync_dir_";
         strcat(location, message.client);
         strcat(location, "/");
-        printf("Location: %s\n", location);
 
         DIR *d;
         struct dirent *dir;

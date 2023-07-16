@@ -7,9 +7,8 @@ include_directories(h)
 
 add_executable(file_server
         h/message_struct.hpp
-        h/packet_struct.hpp
         client.cpp
         clientProcessor.cpp
         server.cpp
         serverProcessor.cpp
-        teste.cpp utils.cpp)
+        utils.cpp)

@@ -65,7 +65,7 @@ void *inotify_thread(void *arg) {
     if (wd == -1) {
         cout << "Couldn't add watch to" << absolutePathString << endl;
     } else {
-        cout << "Watching::" << absolutePathString << endl;
+        cout << "Watching: " << absolutePathString << endl;
     }
 
     while (true) {

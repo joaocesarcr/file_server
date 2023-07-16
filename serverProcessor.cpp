@@ -17,26 +17,26 @@ private:
 
     void handleUpload() {
         printf("Upload command selected.\n");
-        char location[256] = "sync_dir_";
-        strcat(location, message.client);
 
-        string filePath = splitCommand[1];
-        string fileName = filePath.substr(filePath.find_last_of('/') + 1);
-        strcat(location, "/");
-        strcat(location, fileName.c_str());
+        int size;
+        if (!receiveAll(socket, (void *) &size, sizeof(int))) {
+            fprintf(stderr, "ERROR receiving file size\n");
+            return;
+        }
+        printf("File size: %d\n", size);
 
-        printf("Location: %s\n", location);
-
-        FILE *file = fopen(location, "wb");
-        if (!file) {
-            fprintf(stderr, "Error creating file\n");
+        if (size == -1) {
+            fprintf(stderr, "ERROR: file not found\n");
             return;
         }
 
-        ssize_t size;
-        if (!receiveAll(socket, (void *) &size, sizeof(ssize_t))) {
-            fprintf(stderr, "ERROR receiving file size\n");
-            fclose(file);
+        string location = "sync_dir_" + string(message.client) + "/" + splitCommand[1];
+
+        printf("Location: %s\n", location.c_str());
+
+        FILE *file = fopen(location.c_str(), "wb");
+        if (!file) {
+            fprintf(stderr, "Error creating file\n");
             return;
         }
 
@@ -44,20 +44,23 @@ private:
         char buffer[BUFFER_SIZE];
         ssize_t bytesRead, totalBytesReceived = 0;
 
-        while (totalBytesReceived < size) {
-            bytesRead = read(socket, buffer, BUFFER_SIZE);
+        while (totalBytesReceived < (size - 1)) {
+            bytesRead = read(socket, buffer, BUFFER_SIZE - 1);
             if (bytesRead <= 0) {
                 fprintf(stderr, "Error receiving file data\n");
                 fclose(file);
                 return;
             }
 
+            buffer[bytesRead] = '\0';
+
             fwrite(buffer, bytesRead, 1, file);
             totalBytesReceived += bytesRead;
         }
 
-        printf("Total bytes received: %zd\n", totalBytesReceived);
+        printf("Upload successful\n");
         fclose(file);
+
     }
 
     void handleDownload() {
@@ -69,20 +72,30 @@ private:
 
         printf("Location: %s\n", location);
 
+        int size = -1;
         FILE *file = fopen(location, "rb");
         if (!file) {
-            fprintf(stderr, "Error opening file\n");
+            if (!sendAll(socket, (void *) &size, sizeof(ssize_t))) {
+                fprintf(stderr, "ERROR: fail to send not existent file message\n");
+            }
+            fprintf(stderr, "ERROR not existent file message\n");
+            fclose(file);
             return;
         }
 
         fseek(file, 0, SEEK_END);
-        long size = ftell(file);
+        size = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        printf("Size: %ld\n", size);
+        printf("Size: %d\n", size);
 
-        if (!sendAll(socket, (void *) &size, sizeof(long))) {
+        if (!sendAll(socket, (void *) &size, sizeof(int))) {
             fprintf(stderr, "ERROR sending file size\n");
+            fclose(file);
+            return;
+        }
+
+        if (size == 0) {
             fclose(file);
             return;
         }
@@ -90,10 +103,10 @@ private:
         const int BUFFER_SIZE = 1024;
         char buffer[BUFFER_SIZE];
         size_t bytesRead;
-        long totalBytesSent = 0;
+        size_t totalBytesSent = 0;
 
-        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-            if (!sendAll(socket, buffer, bytesRead)) {
+        while ((bytesRead = fread(buffer, 1, BUFFER_SIZE - 1, file)) > 0) {
+            if (!sendAll(socket, (void *) buffer, bytesRead)) {
                 fprintf(stderr, "Error sending file data\n");
                 fclose(file);
                 return;
@@ -101,7 +114,7 @@ private:
             totalBytesSent += bytesRead;
         }
 
-        printf("Total bytes sent: %ld\n", totalBytesSent);
+        printf("Download successful.\n");
         fclose(file);
     }
 

@@ -20,7 +20,6 @@
 #include <iostream>
 #include <sys/stat.h>
 
-
 #include "./h/message_struct.hpp"
 
 using namespace std;

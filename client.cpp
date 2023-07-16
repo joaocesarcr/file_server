@@ -45,8 +45,6 @@ int main(int argc, char *argv[]) {
 
         ClientProcessor handler = *new ClientProcessor(sockfd, message);
         handler.handleInput();
-
-
     } while (running);
     printf("Ending connection\n");
 
