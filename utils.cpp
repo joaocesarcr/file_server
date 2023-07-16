@@ -86,7 +86,7 @@ void *monitor_sync_dir_folder(void *arg) {
                 if(lock_change){
                     lock_change = false;
                     pthread_mutex_unlock(&mutex_file_update);
-                    continue;
+                    break;
                 }
                 lock_change = true;
                 pthread_mutex_unlock(&mutex_file_update);
@@ -153,7 +153,6 @@ void *monitor_sync_dir_folder(void *arg) {
             offset += sizeof(struct inotify_event) + event->len;
         }
     }
-
     inotify_rm_watch(inotifyFd, watchDescriptor);
     close(inotifyFd);
     return nullptr;
@@ -183,6 +182,7 @@ void *listenSocket(void* arg) {
         }
 
         if (!strcmp(message.content, "create")) {
+            pthread_mutex_lock(&mutex_file_update);
             string filename = message.client;
             std::cout << "Received message: create " << filename << std::endl;
             int size;
@@ -217,8 +217,10 @@ void *listenSocket(void* arg) {
                 totalBytesReceived += bytesRead;
             }
             fclose(file);
-            continue;
+            //lock_change = false;
+            pthread_mutex_unlock(&mutex_file_update);
         } else if (!strcmp(message.content, "movout")) {
+            pthread_mutex_lock(&mutex_file_update);
             std::cout << "Received message: delete" << std::endl;
             string filename = message.client;
             string location = absolutePathString + '/' + filename;
@@ -229,6 +231,8 @@ void *listenSocket(void* arg) {
             } else {
                 printf("File deleted successfully.\n");
             }
+            //lock_change = false;
+            pthread_mutex_unlock(&mutex_file_update);
         }
     }
 
