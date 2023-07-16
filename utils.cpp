@@ -1,9 +1,5 @@
 #include "utils.hpp"
 
-bool shoudNotify = true;
-
-pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
-
 pthread_mutex_t mutex_file_update = PTHREAD_MUTEX_INITIALIZER;
 
 bool lock_change = false;
@@ -42,7 +38,7 @@ bool sendAll(int socket, const void *buffer, size_t length) {
     return true;
 }
 
-void *monitor_sync_dir_folder(void *arg) {
+void *monitorSyncDir(void *arg) {
     int inotifyFd = inotify_init();
     if (inotifyFd == -1) {
         std::cerr << "Failed to initialize inotify" << std::endl;
@@ -77,13 +73,13 @@ void *monitor_sync_dir_folder(void *arg) {
 
         ssize_t offset = 0;
         while (offset < bytesRead) {
-            struct inotify_event* event = reinterpret_cast<struct inotify_event*>(&buffer[offset]);
+            struct inotify_event *event = reinterpret_cast<struct inotify_event *>(&buffer[offset]);
 
             if (event->len > 0) {
                 std::string filename(event->name);
                 MESSAGE message;
                 pthread_mutex_lock(&mutex_file_update);
-                if(lock_change){
+                if (lock_change) {
                     lock_change = false;
                     pthread_mutex_unlock(&mutex_file_update);
                     break;
@@ -92,40 +88,36 @@ void *monitor_sync_dir_folder(void *arg) {
                 pthread_mutex_unlock(&mutex_file_update);
                 switch (event->mask) {
                     case IN_DELETE:
-                    case IN_MOVED_FROM:                           
+                    case IN_MOVED_FROM:
                         strcpy(message.client, filename.c_str());
                         strcpy(message.content, "movout");
-                        std::cout << "File deleted: " << filename << std::endl;
                         if (!sendAll(socket, &message, sizeof(MESSAGE))) fprintf(stderr, "ERROR writing to socket\n");
                         break;
-                    case IN_CREATE:  
-                    case IN_CLOSE_WRITE:   
-                    case IN_MOVED_TO:                   
+                    case IN_CREATE:
+                    case IN_CLOSE_WRITE:
+                    case IN_MOVED_TO:
                         strcpy(message.client, filename.c_str());
                         strcpy(message.content, "create");
                         std::cout << "File created: " << filename << std::endl;
-                        if (!sendAll(socket, &message, sizeof(MESSAGE))) { 
+                        if (!sendAll(socket, &message, sizeof(MESSAGE))) {
                             fprintf(stderr, "ERROR writing to socket\n");
-                            break; 
+                            break;
                         }
                         int fileSize;
-                        
-                        string location = absolutePathString + '/' + filename;
-                        cout << location << endl;
+
+                        string location = absolutePathString + "/" + filename;
                         FILE *file = fopen(location.c_str(), "rb");
-                        
+
                         fseek(file, 0, SEEK_END);
-                        
                         fileSize = ftell(file);
-                        
                         fseek(file, 0, SEEK_SET);
-                        
+
                         if (!sendAll(socket, (void *) &fileSize, sizeof(int))) {
                             fprintf(stderr, "Error sending file size\n");
                             fclose(file);
                             break;
                         }
-                        
+
                         if (fileSize < 0) {
                             fclose(file);
                             break;
@@ -145,7 +137,6 @@ void *monitor_sync_dir_folder(void *arg) {
                             totalBytesSent += bytesRead;
                         }
                         fclose(file);
-                        cout << "finished synching";
                         break;
                 }
             }
@@ -158,8 +149,8 @@ void *monitor_sync_dir_folder(void *arg) {
     return nullptr;
 }
 
-void *listenSocket(void* arg) {
-    ThreadArgs* args = static_cast<ThreadArgs*>(arg);
+void *syncChanges(void *arg) {
+    ThreadArgs *args = static_cast<ThreadArgs *>(arg);
     int socket = args->socket;
     MESSAGE message;
 
@@ -173,18 +164,12 @@ void *listenSocket(void* arg) {
     char buffer[7];
     while (true) {
         if (!receiveAll(socket, (void *) &message, sizeof(message))) {
-            fprintf(stderr, "ERROR reading from socket\n");
             return (void *) -1;
         }
 
-        if (sizeof(message.content) <= 0 or sizeof(message.client) <= 0) {
-            break;
-        }
-
+        pthread_mutex_lock(&mutex_file_update);
         if (!strcmp(message.content, "create")) {
-            pthread_mutex_lock(&mutex_file_update);
             string filename = message.client;
-            std::cout << "Received message: create " << filename << std::endl;
             int size;
             string location = absolutePathString + '/' + filename;
             if (!receiveAll(socket, (void *) &size, sizeof(int))) {
@@ -217,25 +202,18 @@ void *listenSocket(void* arg) {
                 totalBytesReceived += bytesRead;
             }
             fclose(file);
-            //lock_change = false;
-            pthread_mutex_unlock(&mutex_file_update);
         } else if (!strcmp(message.content, "movout")) {
-            pthread_mutex_lock(&mutex_file_update);
-            std::cout << "Received message: delete" << std::endl;
             string filename = message.client;
             string location = absolutePathString + '/' + filename;
-            cout << location << endl;
             // Check if the file exists
             if (std::remove(location.c_str()) != 0) {
                 printf("Error deleting the file.\n");
             } else {
                 printf("File deleted successfully.\n");
             }
-            //lock_change = false;
-            pthread_mutex_unlock(&mutex_file_update);
         }
+        pthread_mutex_unlock(&mutex_file_update);
     }
-
     close(socket);
     return nullptr;
 }

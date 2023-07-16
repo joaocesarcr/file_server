@@ -25,10 +25,6 @@
 using namespace std;
 
 #define PORT 4000
-#define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
-#define LEN_NAME 16 /*Assuming that the length of the filename won't exceed 16 bytes*/
-#define EVENT_SIZE  ( sizeof (struct inotify_event) ) /*size of one event*/
-#define BUF_LEN     ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
 #define MAX_TOTAL_CONNECTIONS 5
 #define MAX_CONNECTIONS_PER_CLIENT 2
 
@@ -41,9 +37,9 @@ bool receiveAll(int socket, void *buffer, size_t length);
 
 bool sendAll(int socket, const void *buffer, size_t length);
 
-void *monitor_sync_dir_folder(void *arg);
+void *monitorSyncDir(void *arg);
 
-void *listenSocket(void* arg);
+void *syncChanges(void* arg);
 
 void createSyncDir(const string &clientName);
 

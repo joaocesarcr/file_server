@@ -22,7 +22,7 @@ int create_connection(int port);
 
 bool checkClientAcceptance(int sockfd, MESSAGE message);
 
-void removeClientConnectionsCount(int sockfd);
+void removeClientConnectionsCount(string clientName);
 
 MESSAGE getClientName(int sockfd);
 

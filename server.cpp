@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
         if (newsockfd == -1)
             fprintf(stderr, "ERROR on accept\n");
         else {
-            printf("Connection established successfully.\n\n");
             pthread_t th1, th2, th3;
             auto *args = new ThreadArgs;
             args->socket = newsockfd2;
@@ -41,10 +40,8 @@ int main(int argc, char *argv[]) {
             auto *args2 = new ThreadArgs;
             args2->socket = newsockfd3;
             args2->message = message.client;
-            //pthread_create(&th3, nullptr, inotify_thread, args);
-            pthread_create(&th3, nullptr, monitor_sync_dir_folder, args);
-            //pthread_create(&th2, nullptr, listener_thread, args2);
-            pthread_create(&th2, nullptr, listenSocket, args2);
+            pthread_create(&th3, nullptr, monitorSyncDir, args);
+            pthread_create(&th2, nullptr, syncChanges, args2);
             pthread_create(&th1, nullptr, client_thread, &newsockfd);
         }
     }
@@ -58,8 +55,7 @@ void *client_thread(void *arg) {
 
     while (running) {
         if (!receiveAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
-            fprintf(stderr, "ERROR reading from socket\n");
-            return (void *) -1;
+            return nullptr;
         }
 
         if (!strcmp(message.content, "exit")) {
@@ -71,7 +67,7 @@ void *client_thread(void *arg) {
         }
     }
 
-    removeClientConnectionsCount(sockfd);
+    removeClientConnectionsCount(message.client);
 
     close(sockfd);
 
@@ -146,16 +142,8 @@ bool checkClientAcceptance(int sockfd, MESSAGE message) {
     return accepted;
 }
 
-void removeClientConnectionsCount(int sockfd) {
-    MESSAGE message;
-
-    if (!receiveAll(sockfd, &message, sizeof(MESSAGE))) {
-        fprintf(stderr, "ERROR reading from socket\n");
-        return;
-    }
-
+void removeClientConnectionsCount(string clientName) {
     pthread_mutex_lock(&mutex);
-    string clientName = message.client;
     clientsActiveConnections[clientName]--;
     pthread_mutex_unlock(&mutex);
 }
