@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <iostream>
 #include <sys/stat.h>
+#include <algorithm>
 
 #include "./h/message_struct.hpp"
 
@@ -39,7 +40,7 @@ bool sendAll(int socket, const void *buffer, size_t length);
 
 void *monitorSyncDir(void *arg);
 
-void *syncChanges(void* arg);
+void *syncChanges(void *arg);
 
 void createSyncDir(const string &clientName);
 

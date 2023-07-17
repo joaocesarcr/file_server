@@ -15,11 +15,12 @@ private:
     MESSAGE message;
     vector<string> splitCommand{};
 
-
 public:
     ClientProcessor(int socket, MESSAGE message) : socket(socket), message(message) {
         splitCommand = ClientProcessor::splitString(message.content);
     }
+
+private:
 
     void handleUpload() {
         if (splitCommand.size() < 2) {
@@ -75,15 +76,14 @@ public:
         fclose(file);
     }
 
-    void handleDownload() {
-        printf("Download command selected.\n");
+    void handleDownload(string fileName) {
+        if (fileName.empty()) printf("Download command selected.\n");
 
         int size;
         if (!receiveAll(socket, (void *) &size, sizeof(int))) {
             fprintf(stderr, "ERROR receiving file size\n");
             return;
         }
-        printf("File size: %d\n", size);
 
         if (size == -1) {
             fprintf(stderr, "ERROR: file not found\n");
@@ -91,7 +91,11 @@ public:
         }
 
         string filePath = splitCommand[1];
-        string fileName = filePath.substr(filePath.find_last_of('/') + 1);
+        fileName = filePath.substr(filePath.find_last_of('/') + 1);
+
+        if (!fileName.empty()) {
+            fileName = "sync_dir_" + string(message.client) + "/" + fileName;
+        }
 
         FILE *file = fopen(fileName.c_str(), "wb");
         if (!file) {
@@ -117,7 +121,7 @@ public:
             totalBytesReceived += bytesRead;
         }
 
-        printf("Download successful.\n");
+        if (fileName.empty()) printf("Download successful.\n");
         fclose(file);
     }
 
@@ -150,17 +154,21 @@ public:
         }
     }
 
-    void handleLs() {
+    vector<string> handleLs(bool shouldPrint) {
+        vector<string> dirs;
         char directoryNames[50][256];
         if (!receiveAll(socket, directoryNames, 12800)) {
             fprintf(stderr, "ERROR reading from socket\n");
-            return;
+            return dirs;
         }
         for (auto &directoryName: directoryNames) {
             if (!strcmp(directoryName, "")) break;
 
-            printf("%s", directoryName);
+            dirs.emplace_back(directoryName);
+
+            if (shouldPrint) printf("%s\n", directoryName);
         }
+        return dirs;
     }
 
     void handleLc() {
@@ -182,9 +190,19 @@ public:
         }
     }
 
+public:
     void handleGsd() {
-        printf("GSD content selected.\n");
-        // Your gsd code here
+        vector<string> dirs = handleLs(false);
+
+        for (string fileName: dirs) {
+            strcpy(message.content, "download ");
+            strcat(message.content, fileName.c_str());
+            splitCommand = splitString(message.content);
+            if (!sendAll(socket, &message, sizeof(MESSAGE)))
+                fprintf(stderr, "ERROR writing to socket\n");
+
+            handleDownload(fileName);
+        }
     }
 
     int handleInput() {
@@ -197,11 +215,11 @@ public:
         if (mainCommand == "upload") {
             handleUpload();
         } else if (mainCommand == "download") {
-            handleDownload();
+            handleDownload("");
         } else if (mainCommand == "delete") {
             handleDelete();
         } else if (mainCommand == "ls") {
-            handleLs();
+            handleLs(true);
         } else if (mainCommand == "lc") {
             handleLc();
         } else if (mainCommand == "gsd") {

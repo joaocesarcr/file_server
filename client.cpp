@@ -21,6 +21,8 @@ int main(int argc, char *argv[]) {
     pthread_create(&threadListener, nullptr, syncChanges, listenerArgs);
     pthread_create(&threadMonitor, nullptr, monitorSyncDir, monitorArgs);
 
+    makeSyncDir(argv[1], sockfd);
+
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
     int running = 1;
@@ -74,7 +76,6 @@ int createConnection(char *argv[], int port) {
     }
 
     return sockfd;
-
 }
 
 bool checkConnectionAcceptance(char clientName[], int socket) {
@@ -97,4 +98,18 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
     fprintf(stderr, "ERROR: Connections quota reached\n");
 
     return false;
+}
+
+void makeSyncDir(char clientName[], int socket) {
+    MESSAGE message;
+    strncpy(message.client, clientName, MAX_MESSAGE_LENGTH);
+    strncpy(message.content, "ls", MAX_MESSAGE_LENGTH);
+
+    if (!sendAll(socket, &message, sizeof(MESSAGE)))
+        fprintf(stderr, "ERROR writing to socket\n");
+
+    string strClientName = string(clientName);
+
+    ClientProcessor handler = *new ClientProcessor(socket, message);
+    handler.handleGsd();
 }
