@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <ctime>
 
 #include "./utils.hpp"
 
@@ -151,16 +152,19 @@ public:
     }
 
     void handleLs() {
-        char directoryNames[50][256];
-        if (!receiveAll(socket, directoryNames, 12800)) {
+        //char directoryNames[50][256];
+        struct FileMACTimes fileTimes[50]; 
+        if (!receiveAll(socket, fileTimes, 50*sizeof(FileMACTimes))) {
             fprintf(stderr, "ERROR reading from socket\n");
             return;
         }
-        for (auto &directoryName: directoryNames) {
-            if (!strcmp(directoryName, "")) break;
+        cout << "file name - modified time - access time - created time";
+        for (auto &directoryName: fileTimes) {
+            if (!strcmp(directoryName.filename, "")) break;
 
-            printf("%s", directoryName);
+            cout << endl << directoryName.filename << " " << ctime(&directoryName.modifiedTime) << " " << ctime(&directoryName.accessedTime) << " " << ctime(&directoryName.createdTime);
         }
+        cout << endl;
     }
 
     void handleLc() {
@@ -173,13 +177,20 @@ public:
         d = opendir(location);
 
         if (d) {
+            cout << "file name - modified time - access time - created time";
             while ((dir = readdir(d))) {
                 if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
-                    printf("%s\n", dir->d_name);
+                    struct stat fileStat;
+                    string filePath = location;
+                    filePath = filePath + "/" + dir->d_name;
+                    if (stat(filePath.c_str(), &fileStat) == 0){
+                        cout << endl << dir->d_name << " " << ctime(&fileStat.st_mtim.tv_sec) << " " << ctime(&fileStat.st_atim.tv_sec) << " " << ctime(&fileStat.st_ctim.tv_sec);
+                    }
                 }
             }
             closedir(d);
         }
+        cout << endl;
     }
 
     void handleGsd() {

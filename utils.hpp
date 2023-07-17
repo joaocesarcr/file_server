@@ -27,10 +27,19 @@ using namespace std;
 #define PORT 4000
 #define MAX_TOTAL_CONNECTIONS 5
 #define MAX_CONNECTIONS_PER_CLIENT 2
+#define MAX_FILENAME_LENGTH 256
 
 struct ThreadArgs {
     int socket;
     string message;
+};
+
+
+struct FileMACTimes {
+    char filename[MAX_FILENAME_LENGTH];
+    time_t modifiedTime;
+    time_t accessedTime;
+    time_t createdTime;
 };
 
 bool receiveAll(int socket, void *buffer, size_t length);

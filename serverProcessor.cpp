@@ -131,20 +131,29 @@ private:
         DIR *d;
         struct dirent *dir;
         d = opendir(location);
-        char directoryNames[50][256]; // Array to store directory names
+        struct FileMACTimes fileTimes[50]; 
+        struct stat fileStat;
         int count = 0; // Count of directory names
 
         if (d) {
             while ((dir = readdir(d))) {
                 if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
-                    strcpy(directoryNames[count], strcat(dir->d_name, "\n"));
+                    strcpy(fileTimes[count].filename, strcat(dir->d_name, ""));
+                    struct stat fileStat;
+                    string filePath = location;
+                    filePath = filePath + "/" + fileTimes[count].filename;
+                    if (stat(filePath.c_str(), &fileStat) == 0){
+                    fileTimes[count].modifiedTime = fileStat.st_mtim.tv_sec;
+                    fileTimes[count].accessedTime = fileStat.st_atim.tv_sec;
+                    fileTimes[count].createdTime = fileStat.st_ctim.tv_sec;
+                    }
                     count++;
                 }
             }
             closedir(d);
-            strcpy(directoryNames[count], "");
+            strcpy(fileTimes[count].filename, "");
 
-            if (!sendAll(socket, directoryNames, 12800)) {
+            if (!sendAll(socket, fileTimes, 50*sizeof(FileMACTimes))) {
                 fprintf(stderr, "ERROR sending ls command result\n");
             }
         }
