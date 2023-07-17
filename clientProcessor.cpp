@@ -6,6 +6,7 @@
 #include <string>
 #include <ctime>
 
+
 #include "./utils.hpp"
 
 using namespace std;
@@ -92,10 +93,11 @@ private:
         }
 
         string filePath = splitCommand[1];
-        fileName = filePath.substr(filePath.find_last_of('/') + 1);
 
         if (!fileName.empty()) {
             fileName = "sync_dir_" + string(message.client) + "/" + fileName;
+        }else{
+            fileName = filePath.substr(filePath.find_last_of('/') + 1);
         }
 
         FILE *file = fopen(fileName.c_str(), "wb");
@@ -154,6 +156,7 @@ private:
             closedir(d);
         }
     }
+
         
     vector<string> handleLs(bool shouldPrint) {
         vector<string> dirs;
