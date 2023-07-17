@@ -167,7 +167,7 @@ private:
             if (!strcmp(directoryName.filename, "")) break;
 
             if (shouldPrint) cout << endl << directoryName.filename << " " << ctime(&directoryName.modifiedTime) << " " << ctime(&directoryName.accessedTime) << " " << ctime(&directoryName.createdTime);
-            dirs.emplace_back(directoryName);
+            dirs.emplace_back(directoryName.filename);
         }
         
         return dirs;

@@ -138,6 +138,7 @@ void *monitorSyncDir(void *arg) {
                         fclose(file);
                         break;
                 }
+               
             }
 
             offset += sizeof(struct inotify_event) + event->len;
