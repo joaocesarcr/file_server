@@ -98,7 +98,6 @@ void *monitorSyncDir(void *arg) {
                     case IN_MOVED_TO:
                         strcpy(message.client, filename.c_str());
                         strcpy(message.content, "create");
-                        std::cout << "File created: " << filename << std::endl;
                         if (!sendAll(socket, &message, sizeof(MESSAGE))) {
                             fprintf(stderr, "ERROR writing to socket\n");
                             break;
@@ -176,7 +175,6 @@ void *syncChanges(void *arg) {
                 fprintf(stderr, "ERROR receiving file size\n");
                 return nullptr;
             }
-            printf("File size: %d\n", size);
 
             FILE *file = fopen(location.c_str(), "wb");
             if (!file) {
