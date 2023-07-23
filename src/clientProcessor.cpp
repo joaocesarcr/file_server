@@ -96,7 +96,7 @@ private:
 
         if (!fileName.empty()) {
             fileName = "sync_dir_" + string(message.client) + "/" + fileName;
-        }else{
+        } else {
             fileName = filePath.substr(filePath.find_last_of('/') + 1);
         }
 
@@ -157,11 +157,11 @@ private:
         }
     }
 
-        
+
     vector<string> handleLs(bool shouldPrint) {
         vector<string> dirs;
-        struct FileMACTimes fileTimes[50]; 
-        if (!receiveAll(socket, fileTimes, 50*sizeof(FileMACTimes))) {
+        struct FileMACTimes fileTimes[50];
+        if (!receiveAll(socket, fileTimes, 50 * sizeof(FileMACTimes))) {
             fprintf(stderr, "ERROR reading from socket\n");
             return dirs;
         }
@@ -169,10 +169,12 @@ private:
         for (auto &directoryName: fileTimes) {
             if (!strcmp(directoryName.filename, "")) break;
 
-            if (shouldPrint) cout << endl << directoryName.filename << " " << ctime(&directoryName.modifiedTime) << " " << ctime(&directoryName.accessedTime) << " " << ctime(&directoryName.createdTime);
+            if (shouldPrint)
+                cout << endl << directoryName.filename << " " << ctime(&directoryName.modifiedTime) << " "
+                     << ctime(&directoryName.accessedTime) << " " << ctime(&directoryName.createdTime);
             dirs.emplace_back(directoryName.filename);
         }
-        
+
         return dirs;
     }
 
@@ -192,8 +194,9 @@ private:
                     struct stat fileStat;
                     string filePath = location;
                     filePath = filePath + "/" + dir->d_name;
-                    if (stat(filePath.c_str(), &fileStat) == 0){
-                        cout << endl << dir->d_name << " " << ctime(&fileStat.st_mtim.tv_sec) << " " << ctime(&fileStat.st_atim.tv_sec) << " " << ctime(&fileStat.st_ctim.tv_sec);
+                    if (stat(filePath.c_str(), &fileStat) == 0) {
+                        cout << endl << dir->d_name << " " << ctime(&fileStat.st_mtim.tv_sec) << " "
+                             << ctime(&fileStat.st_atim.tv_sec) << " " << ctime(&fileStat.st_ctim.tv_sec);
                     }
                 }
             }
