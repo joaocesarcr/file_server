@@ -3,12 +3,12 @@ project(file_server)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories(h)
+include_directories(include)
 
 add_executable(file_server
-        h/message_struct.hpp
-        client.cpp
-        clientProcessor.cpp
-        server.cpp
-        serverProcessor.cpp
-        utils.cpp)
+        include/message_struct.hpp
+        src/client.cpp
+        src/clientProcessor.cpp
+        src/server.cpp
+        src/serverProcessor.cpp
+        src/utils.cpp)

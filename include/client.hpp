@@ -13,7 +13,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 
-#include "./clientProcessor.cpp"
+#include "../src/clientProcessor.cpp"
 
 int createConnection(char *argv[], int port);
 

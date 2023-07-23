@@ -14,7 +14,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include "./serverProcessor.cpp"
+#include "../src/serverProcessor.cpp"
 
 void *client_thread(void *arg);
 

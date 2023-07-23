@@ -7,7 +7,7 @@
 #include <ctime>
 
 
-#include "./utils.hpp"
+#include "../include/utils.hpp"
 
 using namespace std;
 

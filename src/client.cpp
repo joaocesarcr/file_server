@@ -1,4 +1,4 @@
-#include "./client.hpp"
+#include "../include/client.hpp"
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {

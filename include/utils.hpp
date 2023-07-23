@@ -21,7 +21,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 
-#include "./h/message_struct.hpp"
+#include "./message_struct.hpp"
 
 using namespace std;
 

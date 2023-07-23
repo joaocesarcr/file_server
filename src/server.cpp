@@ -1,4 +1,4 @@
-#include "./server.hpp"
+#include "../include/server.hpp"
 
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
