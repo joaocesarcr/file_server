@@ -6,6 +6,8 @@
 #include <dirent.h>
 #include <filesystem>
 #include <iostream>
+#include <map>
+#include <netdb.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
 #include <unistd.h>

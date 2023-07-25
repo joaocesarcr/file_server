@@ -1,7 +1,5 @@
 #include "../include/utils.hpp"
 
-using namespace std;
-
 class ServerProcessor {
 private:
     int socket{};

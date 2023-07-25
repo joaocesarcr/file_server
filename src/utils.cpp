@@ -1,8 +1,7 @@
 #include "../include/utils.hpp"
 
-pthread_mutex_t mutex_file_update = PTHREAD_MUTEX_INITIALIZER;
-
 bool lock_change = false;
+pthread_mutex_t mutex_file_update = PTHREAD_MUTEX_INITIALIZER;
 
 bool receiveAll(int socket, void *buffer, size_t length) {
     char *data = static_cast<char *>(buffer);
