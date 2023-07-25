@@ -99,6 +99,7 @@ bool checkConnectionAcceptance(char clientName[], int socket) {
 
     fprintf(stderr, "ERROR: Connections quota reached\n");
 
+    close(socket);
     return false;
 }
 

@@ -36,7 +36,7 @@ bool sendAll(int socket, const void *buffer, size_t length) {
 void monitorSyncDir(void *arg) {
     int inotifyFd = inotify_init();
     if (inotifyFd == -1) {
-        std::cerr << "Failed to initialize inotify" << std::endl;
+        cerr << "Failed to initialize inotify" << endl;
         return;
     }
 
@@ -46,7 +46,7 @@ void monitorSyncDir(void *arg) {
 
     int socket = args.socket;
 
-    filesystem::path currentPath = std::filesystem::current_path();
+    filesystem::path currentPath = filesystem::current_path();
     string filename = "sync_dir_" + clientName;
     filesystem::path absolutePath = currentPath / filename;
     string absolutePathString = absolutePath.string();
@@ -54,7 +54,7 @@ void monitorSyncDir(void *arg) {
     int watchDescriptor = inotify_add_watch(inotifyFd, absolutePathString.c_str(),
                                             IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_CLOSE_WRITE);
     if (watchDescriptor == -1) {
-        std::cerr << "Failed to add watch to the folder" << std::endl;
+        cerr << "Failed to add watch to the folder" << endl;
         return;
     }
 
@@ -62,16 +62,16 @@ void monitorSyncDir(void *arg) {
     while (true) {
         ssize_t bytesRead = read(inotifyFd, buffer, sizeof(buffer));
         if (bytesRead == -1) {
-            std::cerr << "Failed to read from inotify" << std::endl;
+            cerr << "Failed to read from inotify" << endl;
             break;
         }
 
         ssize_t offset = 0;
         while (offset < bytesRead) {
-            struct inotify_event *event = reinterpret_cast<struct inotify_event *>(&buffer[offset]);
+            auto event = reinterpret_cast<struct inotify_event *>(&buffer[offset]);
 
             if (event->len > 0) {
-                std::string filename(event->name);
+                filename = event->name;
                 MESSAGE message;
                 pthread_mutex_lock(&mutex_file_update);
                 if (lock_change) {
@@ -144,13 +144,13 @@ void monitorSyncDir(void *arg) {
 }
 
 void syncChanges(void *arg) {
-    ThreadArgs *args = static_cast<ThreadArgs *>(arg);
+    auto args = static_cast<ThreadArgs *>(arg);
     int socket = args->socket;
     MESSAGE message;
 
     string clientName = args->message;
 
-    filesystem::path currentPath = std::filesystem::current_path();
+    filesystem::path currentPath = filesystem::current_path();
     string filename = "sync_dir_" + clientName;
     filesystem::path absolutePath = currentPath / filename;
     string absolutePathString = absolutePath.string();
@@ -195,7 +195,7 @@ void syncChanges(void *arg) {
             fclose(file);
         } else if (!strcmp(message.content, "movout")) {
             string location = absolutePathString.append("/").append(string(message.client));
-            if (std::remove(location.c_str()) != 0) {
+            if (remove(location.c_str()) != 0) {
                 printf("ERROR deleting the file.\n");
             } else {
                 printf("File deleted successfully.\n");

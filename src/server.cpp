@@ -37,8 +37,10 @@ int main(int argc, char *argv[]) {
         if (!checkClientAcceptance(newsockfd, message)) continue;
         newsockfd2 = accept(sockfd2, (struct sockaddr *) &cli_addr, &clilen);
         newsockfd3 = accept(sockfd3, (struct sockaddr *) &cli_addr, &clilen);
-        if (newsockfd == -1)
+        if (newsockfd == -1) {
             fprintf(stderr, "ERROR on accept\n");
+            break;
+        }
         else {
             pthread_t th1, th2, th3;
 
