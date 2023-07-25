@@ -34,28 +34,27 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "ERROR on accept\n");
         else {
             pthread_t th1, th2, th3;
-            auto *args = new ThreadArgs;
-            args->socket = newsockfd2;
-            args->message = message.client;
-            auto *args2 = new ThreadArgs;
-            args2->socket = newsockfd3;
-            args2->message = message.client;
-            pthread_create(&th3, nullptr, monitorSyncDir, args);
-            pthread_create(&th2, nullptr, syncChanges, args2);
-            pthread_create(&th1, nullptr, client_thread, &newsockfd);
+
+            pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(client_thread), &newsockfd);
+
+            auto *args = new ThreadArgs({newsockfd2, message.client});
+            pthread_create(&th3, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), args);
+
+            auto *args2 = new ThreadArgs({newsockfd3, message.client});
+            pthread_create(&th2, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), args2);
         }
     }
     return 0;
 }
 
-void *client_thread(void *arg) {
+void client_thread(void *arg) {
     MESSAGE message;
     int sockfd = *(int *) arg;
     int running = 1;
 
     while (running) {
         if (!receiveAll(sockfd, (void *) &message, sizeof(MESSAGE))) {
-            return nullptr;
+            return;
         }
 
         if (!strcmp(message.content, "exit")) {
@@ -72,8 +71,6 @@ void *client_thread(void *arg) {
     close(sockfd);
 
     printf("Connection ended\n");
-
-    return nullptr;
 }
 
 int create_connection(int port) {
@@ -142,7 +139,7 @@ bool checkClientAcceptance(int sockfd, MESSAGE message) {
     return accepted;
 }
 
-void removeClientConnectionsCount(string clientName) {
+void removeClientConnectionsCount(const string& clientName) {
     pthread_mutex_lock(&mutex);
     clientsActiveConnections[clientName]--;
     pthread_mutex_unlock(&mutex);

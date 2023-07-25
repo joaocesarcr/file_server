@@ -11,9 +11,7 @@ bool receiveAll(int socket, void *buffer, size_t length) {
     while (totalReceived < length) {
         ssize_t received = read(socket, data + totalReceived, length - totalReceived);
 
-        if (received < 1) {
-            return false;
-        }
+        if (received < 1) return false;
 
         totalReceived += received;
     }
@@ -28,9 +26,7 @@ bool sendAll(int socket, const void *buffer, size_t length) {
     while (totalSent < length) {
         ssize_t sent = write(socket, data + totalSent, length - totalSent);
 
-        if (sent == -1) {
-            return false;
-        }
+        if (sent == -1) return false;
 
         totalSent += sent;
     }
@@ -38,11 +34,11 @@ bool sendAll(int socket, const void *buffer, size_t length) {
     return true;
 }
 
-void *monitorSyncDir(void *arg) {
+void monitorSyncDir(void *arg) {
     int inotifyFd = inotify_init();
     if (inotifyFd == -1) {
         std::cerr << "Failed to initialize inotify" << std::endl;
-        return nullptr;
+        return;
     }
 
     ThreadArgs args = *(ThreadArgs *) arg;
@@ -60,7 +56,7 @@ void *monitorSyncDir(void *arg) {
                                             IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_CLOSE_WRITE);
     if (watchDescriptor == -1) {
         std::cerr << "Failed to add watch to the folder" << std::endl;
-        return nullptr;
+        return;
     }
 
     char buffer[4096];
@@ -104,7 +100,7 @@ void *monitorSyncDir(void *arg) {
                         }
                         int fileSize;
 
-                        string location = absolutePathString + "/" + filename;
+                        string location = absolutePathString.append("/").append(filename);
                         FILE *file = fopen(location.c_str(), "rb");
 
                         fseek(file, 0, SEEK_END);
@@ -138,7 +134,7 @@ void *monitorSyncDir(void *arg) {
                         fclose(file);
                         break;
                 }
-               
+
             }
 
             offset += sizeof(struct inotify_event) + event->len;
@@ -146,10 +142,9 @@ void *monitorSyncDir(void *arg) {
     }
     inotify_rm_watch(inotifyFd, watchDescriptor);
     close(inotifyFd);
-    return nullptr;
 }
 
-void *syncChanges(void *arg) {
+void syncChanges(void *arg) {
     ThreadArgs *args = static_cast<ThreadArgs *>(arg);
     int socket = args->socket;
     MESSAGE message;
@@ -161,26 +156,24 @@ void *syncChanges(void *arg) {
     filesystem::path absolutePath = currentPath / filename;
     string absolutePathString = absolutePath.string();
 
-    char buffer[7];
     while (true) {
         if (!receiveAll(socket, (void *) &message, sizeof(message))) {
-            return (void *) -1;
+            break;
         }
 
         pthread_mutex_lock(&mutex_file_update);
         if (!strcmp(message.content, "create")) {
-            string filename = message.client;
             int size;
-            string location = absolutePathString + '/' + filename;
+            string location = absolutePathString.append("/").append(filename);
             if (!receiveAll(socket, (void *) &size, sizeof(int))) {
                 fprintf(stderr, "ERROR receiving file size\n");
-                return nullptr;
+                break;
             }
 
             FILE *file = fopen(location.c_str(), "wb");
             if (!file) {
-                fprintf(stderr, "Error creating file\n");
-                return nullptr;
+                fprintf(stderr, "ERROR creating file\n");
+                break;
             }
 
             const int BUFFER_SIZE = 1024;
@@ -190,9 +183,9 @@ void *syncChanges(void *arg) {
             while (totalBytesReceived < (size - 1)) {
                 bytesRead = read(socket, buffer, BUFFER_SIZE - 1);
                 if (bytesRead <= 0) {
-                    fprintf(stderr, "Error receiving file data\n");
+                    fprintf(stderr, "ERROR receiving file data\n");
                     fclose(file);
-                    return nullptr;
+                    return;
                 }
 
                 buffer[bytesRead] = '\0';
@@ -202,11 +195,9 @@ void *syncChanges(void *arg) {
             }
             fclose(file);
         } else if (!strcmp(message.content, "movout")) {
-            string filename = message.client;
-            string location = absolutePathString + '/' + filename;
-            // Check if the file exists
+            string location = absolutePathString.append("/").append(filename);
             if (std::remove(location.c_str()) != 0) {
-                printf("Error deleting the file.\n");
+                printf("ERROR deleting the file.\n");
             } else {
                 printf("File deleted successfully.\n");
             }
@@ -214,7 +205,6 @@ void *syncChanges(void *arg) {
         pthread_mutex_unlock(&mutex_file_update);
     }
     close(socket);
-    return nullptr;
 }
 
 void createSyncDir(const string &clientName) {

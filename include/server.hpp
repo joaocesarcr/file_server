@@ -16,13 +16,13 @@
 
 #include "../src/serverProcessor.cpp"
 
-void *client_thread(void *arg);
+void client_thread(void *arg);
 
 int create_connection(int port);
 
 bool checkClientAcceptance(int sockfd, MESSAGE message);
 
-void removeClientConnectionsCount(string clientName);
+void removeClientConnectionsCount(const string& clientName);
 
 MESSAGE getClientName(int sockfd);
 

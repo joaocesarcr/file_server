@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
     auto *listenerArgs = new ThreadArgs{listenerSocket, argv[1]};
     auto *monitorArgs = new ThreadArgs{monitorSocket, argv[1]};
 
-    pthread_create(&threadListener, nullptr, syncChanges, listenerArgs);
-    pthread_create(&threadMonitor, nullptr, monitorSyncDir, monitorArgs);
+    pthread_create(&threadListener, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), listenerArgs);
+    pthread_create(&threadMonitor, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), monitorArgs);
 
     makeSyncDir(argv[1], sockfd);
 
