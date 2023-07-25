@@ -1,25 +1,14 @@
 #ifndef FILE_SERVER_UTILS_HPP
 #define FILE_SERVER_UTILS_HPP
 
-#include <cstdlib>
-#include <string>
-#include <netdb.h>
-#include <ctime>
-#include <pthread.h>
-#include <cstdio>
+#include <algorithm>
 #include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <map>
-#include <cerrno>
-#include <sys/types.h>
-#include <sys/inotify.h>
-#include <climits>
+#include <dirent.h>
 #include <filesystem>
 #include <iostream>
+#include <sys/inotify.h>
 #include <sys/stat.h>
-#include <algorithm>
+#include <unistd.h>
 
 #include "./message_struct.hpp"
 
