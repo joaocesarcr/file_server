@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/server.dir/src/server.cpp.o CMakeFiles/server.dir/src/utils.cpp.o  -o server  -pthread 

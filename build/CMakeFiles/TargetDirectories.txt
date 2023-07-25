@@ -1,4 +1,0 @@
-/sapmnt/home/I564455/Desktop/file_server/build/CMakeFiles/rebuild_cache.dir
-/sapmnt/home/I564455/Desktop/file_server/build/CMakeFiles/edit_cache.dir
-/sapmnt/home/I564455/Desktop/file_server/build/CMakeFiles/client.dir
-/sapmnt/home/I564455/Desktop/file_server/build/CMakeFiles/server.dir
