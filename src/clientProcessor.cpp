@@ -38,7 +38,7 @@ private:
         fseek(file, 0, SEEK_SET);
 
         if (!sendAll(socket, (void *) &fileSize, sizeof(int))) {
-            fprintf(stderr, "Error sending file size\n");
+            fprintf(stderr, "ERROR sending file size\n");
             fclose(file);
             return;
         }
@@ -55,7 +55,7 @@ private:
 
         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE - 1, file)) > 0) {
             if (!sendAll(socket, (void *) buffer, bytesRead)) {
-                fprintf(stderr, "Error sending file data\n");
+                fprintf(stderr, "ERROR sending file data\n");
                 fclose(file);
                 break;
             }
@@ -91,7 +91,7 @@ private:
 
         FILE *file = fopen(fileName.c_str(), "wb");
         if (!file) {
-            fprintf(stderr, "Error creating file\n");
+            fprintf(stderr, "ERROR creating file\n");
             return;
         }
 
@@ -102,7 +102,7 @@ private:
         while (totalBytesReceived < (size - 1)) {
             bytesRead = read(socket, buffer, BUFFER_SIZE - 1);
             if (bytesRead <= 0) {
-                fprintf(stderr, "Error receiving file data\n");
+                fprintf(stderr, "ERROR receiving file data\n");
                 fclose(file);
                 return;
             }

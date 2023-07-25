@@ -108,7 +108,7 @@ void monitorSyncDir(void *arg) {
                         fseek(file, 0, SEEK_SET);
 
                         if (!sendAll(socket, (void *) &fileSize, sizeof(int))) {
-                            fprintf(stderr, "Error sending file size\n");
+                            fprintf(stderr, "ERROR sending file size\n");
                             fclose(file);
                             break;
                         }
@@ -124,7 +124,7 @@ void monitorSyncDir(void *arg) {
 
                         while ((bytesRead = fread(buffer, 1, BUFFER_SIZE - 1, file)) > 0) {
                             if (!sendAll(socket, (void *) buffer, bytesRead)) {
-                                fprintf(stderr, "Error sending file data\n");
+                                fprintf(stderr, "ERROR sending file data\n");
                                 fclose(file);
                                 break;
                             }
