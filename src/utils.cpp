@@ -164,7 +164,7 @@ void syncChanges(void *arg) {
         pthread_mutex_lock(&mutex_file_update);
         if (!strcmp(message.content, "create")) {
             int size;
-            string location = absolutePathString.append("/").append(filename);
+            string location = absolutePathString.append("/").append(string(message.client));
             if (!receiveAll(socket, (void *) &size, sizeof(int))) {
                 fprintf(stderr, "ERROR receiving file size\n");
                 break;
@@ -195,7 +195,7 @@ void syncChanges(void *arg) {
             }
             fclose(file);
         } else if (!strcmp(message.content, "movout")) {
-            string location = absolutePathString.append("/").append(filename);
+            string location = absolutePathString.append("/").append(string(message.client));
             if (std::remove(location.c_str()) != 0) {
                 printf("ERROR deleting the file.\n");
             } else {
