@@ -16,7 +16,6 @@
 
 using namespace std;
 
-#define PORT 4000
 #define MAX_TOTAL_CONNECTIONS 5
 #define MAX_CONNECTIONS_PER_CLIENT 2
 #define MAX_FILENAME_LENGTH 256

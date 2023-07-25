@@ -2,9 +2,11 @@
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
-        fprintf(stderr, "usage %s hostname\n", argv[0]);
+        fprintf(stderr, "ERROR incorrect usage\n");
         exit(-1);
     }
+
+    const int PORT = stoi(argv[3]);
 
     int mainSocket = createConnection(argv, PORT);
     if (!checkConnectionAcceptance(argv[1], mainSocket)) exit(-1);

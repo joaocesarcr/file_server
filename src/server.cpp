@@ -4,6 +4,13 @@ map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "ERROR incorrect usage\n");
+        exit(-1);
+    }
+
+    const int PORT = stoi(argv[1]);
+
     struct sockaddr_in cli_addr{};
     int sockfd, newsockfd;
     int sockfd2, newsockfd2;
