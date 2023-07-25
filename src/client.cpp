@@ -6,8 +6,8 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    int sockfd = createConnection(argv, PORT);
-    if (!checkConnectionAcceptance(argv[1], sockfd)) exit(-1);
+    int mainSocket = createConnection(argv, PORT);
+    if (!checkConnectionAcceptance(argv[1], mainSocket)) exit(-1);
     printf("Connection established successfully.\n\n");
     createSyncDir(argv[1]);
 
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     pthread_create(&threadListener, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), listenerArgs);
     pthread_create(&threadMonitor, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), monitorArgs);
 
-    makeSyncDir(argv[1], sockfd);
+    makeSyncDir(argv[1], mainSocket);
 
     MESSAGE message;
     strncpy(message.client, argv[1], MAX_MESSAGE_LENGTH);
@@ -35,20 +35,20 @@ int main(int argc, char *argv[]) {
             running = 0;
         }
 
-        if (!sendAll(sockfd, &message, sizeof(MESSAGE)))
+        if (!sendAll(mainSocket, &message, sizeof(MESSAGE)))
             fprintf(stderr, "ERROR writing to socket\n");
 
-        ClientProcessor handler = *new ClientProcessor(sockfd, message);
+        ClientProcessor handler = *new ClientProcessor(mainSocket, message);
         handler.handleInput();
     } while (running);
     printf("Ending connection\n");
 
-    close(sockfd);
+    close(mainSocket);
     return 0;
 }
 
 int createConnection(char *argv[], int port) {
-    int sockfd;
+    int newSocket;
     struct sockaddr_in serv_addr{};
     struct hostent *server;
 
@@ -58,9 +58,9 @@ int createConnection(char *argv[], int port) {
         exit(-1);
     }
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    newSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sockfd == -1) {
+    if (newSocket == -1) {
         fprintf(stderr, "ERROR opening socket\n");
         exit(-1);
     }
@@ -70,12 +70,12 @@ int createConnection(char *argv[], int port) {
     serv_addr.sin_addr = *((struct in_addr *) server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
 
-    if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+    if (connect(newSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         fprintf(stderr, "ERROR establishing connection. Exiting...\n");
         exit(-1);
     }
 
-    return sockfd;
+    return newSocket;
 }
 
 bool checkConnectionAcceptance(char clientName[], int socket) {

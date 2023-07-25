@@ -22,7 +22,7 @@ private:
         string fileName = splitCommand[1].substr(splitCommand[1].find_last_of('/') + 1);
         string clientFilePath = "sync_dir_" + string(message.client) + "/" + fileName;
 
-        int fileSize = -1;
+        long fileSize = -1;
         FILE *file = fopen(splitCommand[1].c_str(), "rb");
         if (!file) {
             if (!sendAll(socket, (void *) &fileSize, sizeof(ssize_t))) {
@@ -146,7 +146,6 @@ private:
         }
     }
 
-
     vector<string> handleLs(bool shouldPrint) {
         vector<string> dirs;
         struct FileMACTimes fileTimes[50];
@@ -180,9 +179,8 @@ private:
             cout << "file name - modified time - access time - created time";
             while ((dir = readdir(d))) {
                 if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
-                    struct stat fileStat;
-                    string filePath = location;
-                    filePath = filePath + "/" + dir->d_name;
+                    struct stat fileStat{};
+                    string filePath = string(location).append("/").append(string(dir->d_name));
                     if (stat(filePath.c_str(), &fileStat) == 0) {
                         cout << endl << dir->d_name << " " << ctime(&fileStat.st_mtim.tv_sec) << " "
                              << ctime(&fileStat.st_atim.tv_sec) << " " << ctime(&fileStat.st_ctim.tv_sec);
@@ -198,7 +196,7 @@ public:
     void handleGsd() {
         vector<string> dirs = handleLs(false);
 
-        for (string fileName: dirs) {
+        for (const string& fileName: dirs) {
             strcpy(message.content, "download ");
             strcat(message.content, fileName.c_str());
             splitCommand = splitString(message.content);

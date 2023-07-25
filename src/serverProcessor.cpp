@@ -65,7 +65,7 @@ private:
 
         printf("Location: %s\n", location);
 
-        int size = -1;
+        long size = -1;
         FILE *file = fopen(location, "rb");
         if (!file) {
             if (!sendAll(socket, (void *) &size, sizeof(ssize_t))) {
@@ -80,7 +80,7 @@ private:
         size = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        printf("Size: %d\n", size);
+        printf("Size: %ld\n", size);
 
         if (!sendAll(socket, (void *) &size, sizeof(int))) {
             fprintf(stderr, "ERROR sending file size\n");
@@ -124,17 +124,15 @@ private:
         DIR *d;
         struct dirent *dir;
         d = opendir(location);
-        struct FileMACTimes fileTimes[50]; 
-        struct stat fileStat;
+        struct FileMACTimes fileTimes[50];
         int count = 0; // Count of directory names
 
         if (d) {
             while ((dir = readdir(d))) {
                 if (strcmp(dir->d_name, ".") != 0 && (strcmp(dir->d_name, "..") != 0)) {
                     strcpy(fileTimes[count].filename, strcat(dir->d_name, ""));
-                    struct stat fileStat;
-                    string filePath = location;
-                    filePath = filePath + "/" + fileTimes[count].filename;
+                    struct stat fileStat{};
+                    string filePath = string(location).append("/").append(fileTimes[count].filename);
                     if (stat(filePath.c_str(), &fileStat) == 0){
                     fileTimes[count].modifiedTime = fileStat.st_mtim.tv_sec;
                     fileTimes[count].accessedTime = fileStat.st_atim.tv_sec;
@@ -152,12 +150,12 @@ private:
         }
     }
 
-    void handleLc() {
+    static void handleLc() {
         printf("LC command selected.\n");
         // Your lc code here
     }
 
-    void handleGsd() {
+    static void handleGsd() {
         printf("GSD command selected.\n");
         // Your gsd code here
     }
