@@ -3,6 +3,18 @@
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+typedef struct CLIENT_CONNECTIONS {
+    int socket_processor;
+    int socket_inotify;
+    int socket_sync_dir;
+    char client[MAX_MESSAGE_LENGTH + 1]; 
+} CLIENT_CONNECTIONS;
+
+#define MAX_CONNECTION 10
+
+struct CLIENT_CONNECTIONS connections[MAX_CONNECTION];
+
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "ERROR incorrect usage\n");

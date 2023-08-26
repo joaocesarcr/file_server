@@ -1,27 +1,34 @@
 #include "../include/client.hpp"
 
+int mainSocket;
+int listenerSocket;
+int monitorSocket;
+int PORT;
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "ERROR incorrect usage\n");
         exit(-1);
     }
 
-    const int PORT = stoi(argv[3]);
+    PORT = stoi(argv[3]);
 
-    int mainSocket = createConnection(argv, PORT);
+    mainSocket = createConnection(argv, PORT);
     if (!checkConnectionAcceptance(argv[1], mainSocket)) exit(-1);
     printf("Connection established successfully.\n\n");
     createSyncDir(argv[1]);
 
-    int listenerSocket = createConnection(argv, PORT + 1);
-    int monitorSocket = createConnection(argv, PORT + 2);
+    listenerSocket = createConnection(argv, PORT + 1);
+    monitorSocket = createConnection(argv, PORT + 2);
 
-    pthread_t threadListener, threadMonitor;
+    pthread_t threadListener, threadMonitor, serverChangeListener;;
     auto *listenerArgs = new ThreadArgs{listenerSocket, argv[1]};
     auto *monitorArgs = new ThreadArgs{monitorSocket, argv[1]};
 
     pthread_create(&threadListener, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), listenerArgs);
     pthread_create(&threadMonitor, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), monitorArgs);
+    pthread_create(&serverChangeListener, nullptr, listenForServerChanges, nullptr);
+
 
     makeSyncDir(argv[1], mainSocket);
 
@@ -115,4 +122,61 @@ void makeSyncDir(char clientName[], int socket) {
 
     ClientProcessor handler = *new ClientProcessor(socket, message);
     handler.handleGsd();
+}
+
+int setupListenSocket() {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        fprintf(stderr, "ERROR opening socket\n");
+        exit(-1);
+    }
+
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8080);  // Change to your preferred port
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        fprintf(stderr, "ERROR on binding\n");
+        exit(-1);
+    }
+
+    listen(sockfd, 5);
+
+    return sockfd;
+}
+
+void changeConnectionsToNewHost(char *newHost) {
+
+    struct hostent *server = gethostbyname(newHost);
+    if (!server) {
+        fprintf(stderr, "ERROR, no such host\n");
+        exit(-1);
+    }
+
+    mainSocket = createConnection(&newHost, PORT);
+    listenerSocket = createConnection(&newHost, PORT + 1);
+    monitorSocket = createConnection(&newHost, PORT + 2);
+
+}
+
+void *listenForServerChanges(void *arg) {
+    int listenSocket;
+    struct sockaddr_in serv_addr{};
+
+    listenSocket = setupListenSocket();  
+    
+    while(true) {
+        socklen_t socketSize = sizeof(struct sockaddr_in);
+        int updateSocket = accept(listenSocket, (struct sockaddr *) &serv_addr, &socketSize);
+        char newHost[MAX_MESSAGE_LENGTH];
+        receiveAll(updateSocket, newHost, MAX_MESSAGE_LENGTH);
+        
+        changeConnectionsToNewHost(newHost);
+        
+        close(updateSocket);
+    }
+    return nullptr;
 }
