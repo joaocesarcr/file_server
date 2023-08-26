@@ -33,6 +33,16 @@ struct FileMACTimes {
     time_t createdTime;
 };
 
+typedef struct server_msg_s {
+    struct sockaddr_in add{};
+    int command{}; // dps voltar pra string
+} SERVER_MSG;
+
+typedef struct ring_msg_s {
+    int pid;
+    int command; // dps voltar pra string
+} RING_MSG;
+
 bool receiveAll(int socket, void *buffer, size_t length);
 
 bool sendAll(int socket, const void *buffer, size_t length);
