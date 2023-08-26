@@ -9,4 +9,6 @@ bool checkConnectionAcceptance(char clientName[], int socket);
 
 void makeSyncDir(char clientName[], int socket);
 
+void *listenForServerChanges(void *arg);
+
 #endif  // CLIENT_HEADER_H

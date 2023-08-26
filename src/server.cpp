@@ -3,6 +3,7 @@
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "ERROR incorrect usage\n");
