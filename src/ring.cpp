@@ -1,62 +1,126 @@
-#include "../include/ring.hpp"
-#include "../include/server.hpp"
+#include <stdio.h>
+#include <pthread.h>
+#include <iostream>
+#include <string.h>
+#include <cstring>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <vector>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <cstdio>
 
-int PORT;
+int PORT =  4050;
+bool BEGIN_ELECTION = false;
 int SEND_TO_SOCKET = 0;
 int LISTENING_SOCKET = 0;
 bool GOT_PORT = false;
 bool SERVER_DIED = false;
 bool ELECTION_RUNNING = false;
 int MYPID = 0;
-vector<int> RING_PARTICIPANTS;
+std::vector<int> RING_PARTICIPANTS;
 int RING_PARTICIPANTS_QTT = 0;
 
-vector<struct sockaddr_in> user_ips_in_ring;
-vector<int> user_ports_in_ring;
+using namespace std;
+vector<struct sockaddr_in> user_ips;
+vector<int> user_ports;
 
 pthread_mutex_t serverDiedMutex = PTHREAD_MUTEX_INITIALIZER; // Initialize mutex
 
-void ring(void *arg) {
-    char **argv = (*(HostArgs *) arg).argv;
-    PORT = (*(HostArgs *) arg).port;
-    printf("%d\n", PORT);
+
+struct ThreadArgs {
+    int socket;
+    std::string message;
+};
+
+typedef struct server_msg_s {
+    struct sockaddr_in add;
+    int command;
+    int port;
+} SERVER_MSG;
+
+typedef struct heart_beat_S {
+    bool ignore; // dps voltar pra string
+} HEART_BEAT;
+
+typedef struct ring_msg_S {
+    int command; // 0= send PID; 1= ELECTED
+    int pid;
+} RING_MSG;
+
+void* neverdie(void* arg);
+bool receiveAll(int socket, void *buffer, size_t length);
+void* listen_to_server(void* arg);
+bool sendAll(int socket, const void *buffer, size_t length);
+void* heart_beat(void* arg) ;
+void handleServerCommand(SERVER_MSG message);
+int createConnectionRing(char argv[], int port) ;
+int host_connectionRing(int port);
+void* ring_commands(void* arg);
+void* receive_connections_thread(void* arg);
+int connec_to_ring(struct sockaddr_in, int port);
+bool isInParticipants(int pid);
+
+int main(int argc, char *argv[])
+{
     int sockfd, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
     MYPID = getpid();
-    printf("MY PID = %d\n", MYPID);
+    printf("MY PID = %d\n",MYPID);
 
-    printf("waiting\n");
-    printf("%s", argv[2]);
-    int listen_commands = createConnectionRing(argv[2], PORT + 5);
-    printf("done\n");
+    if (argc < 2) {
+        fprintf(stderr,"usage %s hostname\n", argv[0]);
+        exit(0);
+    }
+
+    int listen_commands = createConnectionRing(argv[1], PORT + 5);
+    int heart_beat_connection = createConnectionRing(argv[1], PORT + 6);
 
     pthread_t threadListener, threadHB, acceptConnections, neverdie_t;
     auto *listenerArgs = new ThreadArgs{listen_commands, argv[1]};
+    auto *hbArgs = new ThreadArgs{heart_beat_connection, argv[1]};
 
     // Mutex
-    pthread_create(&threadListener, nullptr, reinterpret_cast<void *(*)(void *)>(listen_to_server), listenerArgs);
-    pthread_create(&acceptConnections, nullptr, reinterpret_cast<void *(*)(void *)>(receive_connections_thread),
-                   nullptr);
+    pthread_create(&threadListener, nullptr, listen_to_server, listenerArgs);
+    pthread_create(&neverdie_t, nullptr, neverdie, listenerArgs);
+    pthread_create(&acceptConnections, nullptr, receive_connections_thread,NULL);
+//  pthread_create(&threadHB, nullptr, heart_beat, hbArgs);
 
+
+//  pthread_join(threadHB, nullptr);
     pthread_join(acceptConnections, nullptr);
     pthread_join(threadListener, nullptr);
-
+    pthread_join(neverdie_t, nullptr);
+    /*
+    */
     printf("CHEGOU NO FINAL DO PROGRAMA \n");
+
 }
 
-void listen_to_server(void *arg) {
+void* neverdie(void* arg) {
+    while(true) {
+        sleep(3);
+//    printf("Never die\n");
+    }
+}
+void* listen_to_server(void* arg) {
     SERVER_MSG message;
-    ThreadArgs threadArgs = *(ThreadArgs *) arg;
-    int sockfd = threadArgs.socket;
+    int sockfd = *(int *) arg;
     bool running = true;
-    int n;
+    int n = 0;
     RING_MSG begin;
 
-    printf("%i", sockfd);
-    printf("waiting\n");
-    receiveAll(sockfd, &message, sizeof(SERVER_MSG));
-    printf("done ring\n");
+    n = receiveAll(sockfd, &message, sizeof(SERVER_MSG));
 
     PORT = message.port;
     GOT_PORT = true;
@@ -78,7 +142,7 @@ void listen_to_server(void *arg) {
                 RING_PARTICIPANTS_QTT++;
                 printf("STARTED ELECTION!\n");
                 begin.command = 0;
-                begin.pid = MYPID;
+                begin.pid=MYPID;
                 sendAll(SEND_TO_SOCKET, &begin, sizeof(RING_MSG));
                 ELECTION_RUNNING = true;
             }
@@ -95,7 +159,7 @@ void listen_to_server(void *arg) {
 }
 
 void handleServerCommand(SERVER_MSG message) {
-    char *ipAddress = inet_ntoa(message.add.sin_addr);
+    char* ipAddress = inet_ntoa(message.add.sin_addr);
 //  printf("Comando: %d\nIp: %s\nPort: %d\n", message.command, ipAddress,message.port);
 
     // Desfaça receba
@@ -110,7 +174,7 @@ void handleServerCommand(SERVER_MSG message) {
         if (SEND_TO_SOCKET != 0) {
             close(SEND_TO_SOCKET);
         }
-        printf("Connecting to port = %d\n", message.port);
+        printf("Connecting to port = %d\n",message.port);
         int sockfd = connec_to_ring(message.add, message.port);
         SEND_TO_SOCKET = sockfd;
         // Handle input de envio aqui!
@@ -120,9 +184,11 @@ void handleServerCommand(SERVER_MSG message) {
     else if (message.command == 2) {
         // Mutex pra terminar conexao
 
-    } else if (message.command == 3) {
-        user_ips_in_ring.push_back(message.add);
-        user_ports_in_ring.push_back(message.port);
+    }
+
+    else if (message.command == 3) {
+        user_ips.push_back(message.add);
+        user_ports.push_back(message.port);
 
 
     }
@@ -132,11 +198,11 @@ int connec_to_ring(struct sockaddr_in name, int port) {
     int sockfd;
 
     struct sockaddr_in serv_addr;
-    char *ipAddress = inet_ntoa(name.sin_addr);
+    char* ipAddress = inet_ntoa(name.sin_addr);
     struct hostent *server;
     server = gethostbyname(ipAddress);
     if (server == NULL) {
-        fprintf(stderr, "ERROR, no such host, exiting\n");
+        fprintf(stderr,"ERROR, no such host, exiting\n");
         exit(0);
     }
 
@@ -160,11 +226,11 @@ int connec_to_ring(struct sockaddr_in name, int port) {
 
 }
 
-void receive_connections_thread(void *arg) {
+void* receive_connections_thread(void* arg) {
     // ENQUANTO NAO SEI PORTA ESPERA
     while (!GOT_PORT) {
     }
-    printf("RECEBI PORTA DO HOST = %d\n", PORT);
+    printf("RECEBI PORTA DO HOST = %d\n",PORT);
 
     bool running = true;
     socklen_t clilen = sizeof(struct sockaddr_in);
@@ -190,12 +256,11 @@ void receive_connections_thread(void *arg) {
         inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 
         printf("Client connected from IP %s and port %d. Socket = %d\n", client_ip, client_port, LISTENING_SOCKET);
-        pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(ring_commands), &LISTENING_SOCKET);
+        pthread_create(&th1, nullptr, ring_commands, &LISTENING_SOCKET);
     }
-
 }
 
-void ring_commands(void *arg) {
+void* ring_commands(void* arg) {
     RING_MSG message;
     int sockfd = *(int *) arg;
     bool running = true;
@@ -205,9 +270,11 @@ void ring_commands(void *arg) {
         if (receiveAll(sockfd, &message, sizeof(RING_MSG)) <= 0) {
             running = false;
             printf("ERROR READING FROM ANOTHER RING\n");
-        } else {
+        }
+
+        else {
             printf("Mensagem recebida: \n");
-            printf("Comando: %d\nPid: %d\n", message.command, message.pid);
+            printf("Comando: %d\nPid: %d\n", message.command,message.pid);
             ELECTION_RUNNING = true;
 
 
@@ -217,12 +284,11 @@ void ring_commands(void *arg) {
                 if (message.pid == MYPID) {
                     printf("FUI ELEITO!!\n");
                     // Avisa para ele se conectar a minha conexao
-                    pthread_t th1;
-                    auto *hostArgs = new HostArgs({PORT, nullptr});
-                    pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(server), &hostArgs);
-                } else {
+                    // ATIVA MODO HOST
+                }
+                else {
                     // Repassa o que foi recebido
-                    printf("Repassando que %d foi eleito\n", message.pid);
+                    printf("Repassando que %d foi eleito\n",message.pid);
                     sendAll(SEND_TO_SOCKET, &message, sizeof(RING_MSG));
                     // Se conecta ao novo host
                     // Reseta participantes e eleicao
@@ -246,12 +312,12 @@ void ring_commands(void *arg) {
                     RING_PARTICIPANTS_QTT++;
                     if (message.pid > MYPID) {
                         sendAll(SEND_TO_SOCKET, &message, sizeof(RING_MSG));
-                        printf("Mensagem enviada:\n pid: %d\n comando: %d\n", message.pid, message.command);
+                        printf("Mensagem enviada:\n pid: %d\n comando: %d\n",message.pid,message.command);
                     }
                 } else {
                     printf("%d Tava nos participantes\n", pid);
-                    for (int i = 0; i <= RING_PARTICIPANTS_QTT; i++) {
-                        printf("Participant %d = %d\n", i, RING_PARTICIPANTS[i]);
+                    for(int i =0; i <= RING_PARTICIPANTS_QTT;i++) {
+                        printf("Participant %d = %d\n",i, RING_PARTICIPANTS[i]);
                     }
                 }
 
@@ -260,12 +326,63 @@ void ring_commands(void *arg) {
     }
 }
 
+
+void* heart_beat(void* arg) {
+    HEART_BEAT message;
+    int host = *(int *) arg;
+    bool running = true;
+
+    do {
+        sleep(1);
+        if (!sendAll(host, &message, sizeof(HEART_BEAT))) {
+            printf("SERVER DIED SENDING HEART_BEAT!\n");
+            close(host);
+            if (!ELECTION_RUNNING)
+                // BEGIN_ELECTION = true;
+                printf("SERVER DIED END!\n");
+            pthread_exit(nullptr);
+            //running = false;
+            //SERVER_DIED = true;
+        }
+    } while (running);
+}
+
+bool receiveAll(int socket, void *buffer, size_t length) {
+    char *data = static_cast<char *>(buffer);
+    ssize_t totalReceived = 0;
+
+    while (totalReceived < length) {
+        ssize_t received = read(socket, data + totalReceived, length - totalReceived);
+
+        if (received < 1) return false;
+
+        totalReceived += received;
+    }
+
+    return true;
+}
+
+bool sendAll(int socket, const void *buffer, size_t length) {
+    const char *data = static_cast<const char *>(buffer);
+    ssize_t totalSent = 0;
+
+    while (totalSent < length) {
+        ssize_t sent = write(socket, data + totalSent, length - totalSent);
+
+        if (sent == -1) return false;
+
+        totalSent += sent;
+    }
+
+    return true;
+}
+
+
 int createConnectionRing(char name[], int port) {
     int sockfd;
     struct sockaddr_in serv_addr{};
     struct hostent *server;
 
-    printf("---%s---", name);
     server = gethostbyname(name);
     if (!server) {
         fprintf(stderr, "ERROR, no such host, exiting\n");
@@ -314,9 +431,8 @@ int host_connectionRing(int port) {
     }
     return sockfd;
 }
-
 bool isInParticipants(int pid) {
-    for (int i = 0; i <= RING_PARTICIPANTS_QTT; i++) {
+    for (int i =0; i <= RING_PARTICIPANTS_QTT;i++) {
         if (RING_PARTICIPANTS[i] == pid) {
             return true;
         }
