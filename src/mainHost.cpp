@@ -1,17 +1,18 @@
-#include "host.cpp"
+#include "../include/host.hpp"
+#include "../include/ring.hpp"
 
-bool isHost = false;
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
+    if (argc < 2) {
         fprintf(stderr, "usage %s hostname\n", argv[0]);
         exit(-1);
     }
-    if (argc < 5) {
-        // É o host principal
-        isHost = true;
-    }
 
-    if (isHost) {
-        host();
-    } else ring();
+    int port = stoi(argv[1]);
+    if (argc == 3) {
+        auto *hostArgs = new HostArgs({port, argv});
+        ring(hostArgs);
+    } else {
+        auto *hostArgs = new HostArgs({port, nullptr});
+        host(hostArgs);
+    };
 }

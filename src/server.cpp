@@ -3,14 +3,8 @@
 map<string, int> clientsActiveConnections{};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "ERROR incorrect usage\n");
-        exit(-1);
-    }
-
-    const int PORT = stoi(argv[1]);
+void server(void *arg) {
+    int PORT = (*(HostArgs *) arg).port - 50;
 
     struct sockaddr_in cli_addr{};
     int sockfd, newsockfd;
@@ -48,13 +42,13 @@ int main(int argc, char *argv[]) {
             pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(client_thread), &newsockfd);
 
             auto *args = new ThreadArgs({newsockfd2, message.client});
-            pthread_create(&th3, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), args);
+            pthread_create(&th2, nullptr, reinterpret_cast<void *(*)(void *)>(monitorSyncDir), args);
 
             auto *args2 = new ThreadArgs({newsockfd3, message.client});
-            pthread_create(&th2, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), args2);
+            pthread_create(&th3, nullptr, reinterpret_cast<void *(*)(void *)>(syncChanges), args2);
         }
     }
-    return 0;
+    return;
 }
 
 void client_thread(void *arg) {
@@ -81,28 +75,6 @@ void client_thread(void *arg) {
     close(sockfd);
 
     printf("Connection ended\n");
-}
-
-int create_connection(int port) {
-    int sockfd, bindReturn;
-    struct sockaddr_in serv_addr{};
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        fprintf(stderr, "ERROR opening socket\n");
-        exit(-1);
-    }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    bzero(&(serv_addr.sin_zero), 8);
-    bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-    if (bindReturn < 0) {
-        fprintf(stderr, "ERROR on binding\n");
-        exit(-1);
-    }
-    return sockfd;
 }
 
 MESSAGE getClientName(int sockfd) {

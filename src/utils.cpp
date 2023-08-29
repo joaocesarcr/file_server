@@ -212,3 +212,26 @@ void createSyncDir(const string &clientName) {
     mkdir(dirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
+
+int create_connection(int port) {
+    int sockfd, bindReturn;
+    struct sockaddr_in serv_addr{};
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        fprintf(stderr, "ERROR opening socket\n");
+        exit(-1);
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(serv_addr.sin_zero), 8);
+    bindReturn = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    if (bindReturn < 0) {
+        fprintf(stderr, "ERROR on binding\n");
+        exit(-1);
+    }
+    return sockfd;
+}
+

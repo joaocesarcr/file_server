@@ -1,61 +1,84 @@
-#include "../include/utils.hpp"
-#include "ring.cpp"
+#include "../include/host.hpp"
+#include "../include/server.hpp"
 
-vector<int> users;
-vector<struct sockaddr_in> user_ips;
+vector<int> users_sockets;
+vector<struct sockaddr_in> user_ips_in_host;
+vector<int> user_ports_in_host;
 
 int users_qtt = 0;
+int new_ring_socket, new_hb_socket;
+struct sockaddr_in cli_addr{};
+socklen_t clilen;
 
-int host() {
-    socklen_t clilen = sizeof(struct sockaddr_in);
-    int sockfd = create_connection("?????");
-    struct sockaddr_in cli_addr{};
-
-    // tells the socket that new connections shall be accepted
+[[noreturn]] void host(void *arg) {
+    int PORT = (*(HostArgs *) arg).port;
+    printf("%d", PORT);
+    printf("Criando conexao\n");
+    int sockfd = create_connection(PORT + 5);
+    int socket_heartbeat = create_connection(PORT + 6);
+    printf("Iniciando listen\n");
     listen(sockfd, 20);
-    printf("Waiting accept\n");
-
-    // get a new socket with a new incoming connection
+    listen(socket_heartbeat, 20);
 
     while (true) {
-        int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-        if (newsockfd == -1) {
+        printf("waiting\n");
+        new_ring_socket = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        new_hb_socket = accept(socket_heartbeat, (struct sockaddr *) &cli_addr, &clilen);
+        printf("done\n");
+        if (new_ring_socket == -1) {
             printf("ERROR on accept\n");
             continue;
         }
-        users[users_qtt] = newsockfd;
-        user_ips[users_qtt] = cli_addr;
+        printf("Active rings: %d\n", users_qtt + 1);
 
-        SERVER_MSG to_accept_new;
-        to_accept_new.command = 0;
+        users_sockets.push_back(new_ring_socket);
+        user_ips_in_host.push_back(cli_addr);
+        user_ports_in_host.push_back(PORT + users_qtt + 1);
 
         SERVER_MSG to_connect_to_first;
         to_connect_to_first.command = 1;
-        to_connect_to_first.add = user_ips[0];
+        to_connect_to_first.add = user_ips_in_host[0];
+        to_connect_to_first.port = user_ports_in_host[0];
 
         SERVER_MSG to_connect_to_new;
         to_connect_to_new.command = 1;
+        to_connect_to_new.port = PORT + users_qtt + 1;
         to_connect_to_new.add = cli_addr;
 
-        // Caso especial: se só tem uma conexao?
+        SERVER_MSG useport;
+        useport.port = PORT + users_qtt + 1;
+        printf("%i", new_ring_socket);
+        sendAll(new_ring_socket, &useport, sizeof(SERVER_MSG));
+        printf("done\n");
 
-        // tell users[0] to_accept_new
-        sendAll(users[0], &to_accept_new, sizeof(SERVER_MSG));
+        if (users_qtt == 0) {
 
-        // tell users[-1] to connect_to newuser
-        sendAll(users[users_qtt], &to_connect_to_new, sizeof(SERVER_MSG));
+        } else if (users_qtt == 1) {
+            sendAll(users_sockets[0], &to_connect_to_new, sizeof(SERVER_MSG));
+            sendAll(users_sockets[users_qtt], &to_connect_to_first, sizeof(SERVER_MSG));
 
-        // tell newuser to_accept_new
-        sendAll(users[users_qtt], &to_accept_new, sizeof(SERVER_MSG));
-        // tell newuser to connect to users[0]
-        sendAll(newsockfd, &to_connect_to_first, sizeof(SERVER_MSG));
-
-        // Cria thread pra heart_beat e comandos
-        printf("Connection established successfully.\n\n");
-        pthread_t th1;
-        pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(heart_beat_s), &newsockfd);
-        pthread_create(&th1, nullptr, talkto,newsockfd);
-        users_qtt++;
+        } else if (users_qtt > 1) {
+            sendAll(users_sockets[users_qtt - 1], &to_connect_to_new, sizeof(SERVER_MSG));
+            sendAll(new_ring_socket, &to_connect_to_first, sizeof(SERVER_MSG));
         }
-    return 0;
+        pthread_t th1, th2;
+        pthread_create(&th1, nullptr, reinterpret_cast<void *(*)(void *)>(heart_beat_s), &new_hb_socket);
+
+        auto *hostArgs = new HostArgs({PORT, nullptr});
+        pthread_create(&th2, nullptr, reinterpret_cast<void *(*)(void *)>(server), hostArgs);
+        users_qtt++;
+    }
+}
+
+void heart_beat_s(void *arg) {
+    HEART_BEAT message;
+    int sockfd = *(int *) arg;
+    bool running = true;
+    while (running) {
+        if (receiveAll(sockfd, &message, sizeof(HEART_BEAT)) <= 0)
+            running = false;
+        else {
+            printf("HB \n");
+        }
+    }
 }

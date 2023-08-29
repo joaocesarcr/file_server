@@ -11,6 +11,8 @@
 #include <sys/inotify.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "./message_struct.hpp"
 
@@ -33,15 +35,21 @@ struct FileMACTimes {
     time_t createdTime;
 };
 
+
+struct HostArgs {
+    int port;
+    char **argv;
+};
+
 typedef struct server_msg_s {
     struct sockaddr_in add{};
-    int command{}; // dps voltar pra string
+    int command{};
+    int port{};
 } SERVER_MSG;
 
-typedef struct ring_msg_s {
-    int pid;
-    int command; // dps voltar pra string
-} RING_MSG;
+typedef struct heart_beat_Struct {
+    int ignore; // dps voltar pra string
+} HEART_BEAT;
 
 bool receiveAll(int socket, void *buffer, size_t length);
 
@@ -52,5 +60,7 @@ void monitorSyncDir(void *arg);
 void syncChanges(void *arg);
 
 void createSyncDir(const string &clientName);
+
+int create_connection(int port);
 
 #endif //FILE_SERVER_UTILS_HPP

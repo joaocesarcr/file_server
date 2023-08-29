@@ -8,10 +8,7 @@ find_package(Threads REQUIRED)
 
 include_directories(include)
 
-add_executable(server ./src/server.cpp ./src/utils.cpp
-        src/host.cpp
-        src/ring.cpp
-        src/mainHost.cpp)
+add_executable(server ./src/mainHost.cpp ./src/server.cpp ./src/utils.cpp ./src/host.cpp ./src/ring.cpp)
 target_link_libraries(server Threads::Threads)
 
 add_executable(client ./src/client.cpp ./src/utils.cpp)
